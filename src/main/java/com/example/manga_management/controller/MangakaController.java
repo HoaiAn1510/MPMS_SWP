@@ -42,6 +42,7 @@ import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 import com.example.manga_management.service.ActivityLogService;
 import com.example.manga_management.service.BookJacketStorageService;
+import com.example.manga_management.service.DataAccessService;
 import com.example.manga_management.service.FileStorageService;
 import com.example.manga_management.service.ProposalService;
 
@@ -68,6 +69,7 @@ public class MangakaController {
     private final VoteSessionRepository voteSessionRepository;
     private final BookJacketStorageService bookJacketStorageService;
     private final FileStorageService fileStorageService;
+    private final DataAccessService dataAccessService;
 
     public MangakaController(ProposalRepository proposalRepository, MangakaRepository mangakaRepository,
             SeriesRepository seriesRepository,
@@ -77,8 +79,9 @@ public class MangakaController {
             ProposalService proposalService, ActivityLogService activityLogService,
             VoteSessionRepository voteSessionRepository,
             BookJacketStorageService bookJacketStorageService,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService, DataAccessService dataAccessService) {
         this.fileStorageService = fileStorageService;
+        this.dataAccessService = dataAccessService;
         this.proposalRepository = proposalRepository;
         this.mangakaRepository = mangakaRepository;
         this.assistantRepository = assistantRepository;
@@ -99,6 +102,13 @@ public class MangakaController {
                 && series.getProposal().getMangaka() != null
                 && series.getProposal().getMangaka().getUser() != null
                 && series.getProposal().getMangaka().getUser().getId().equals(user.getId());
+    }
+
+    /** Submission này thuộc series của Mangaka đang đăng nhập không. */
+    private boolean isOwnSubmission(Submission submission, User user) {
+        return submission != null && submission.getPageId() != null
+                && submission.getPageId().getChapter() != null
+                && isOwnSeries(submission.getPageId().getChapter().getSeries(), user);
     }
 
     @GetMapping({ "" })
@@ -171,13 +181,18 @@ public class MangakaController {
     @Operation(summary = "[SWAGGER] Xem tất cả proposals của một Mangaka")
     @GetMapping("/my-projects/data")
     @ResponseBody
-    public Map<String, Object> myProjectsData(@RequestParam String mangakaId, Model model) {
+    public Map<String, Object> myProjectsData(@RequestParam String mangakaId, Model model, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
         Mangaka mangaka = mangakaRepository.findById(mangakaId).orElse(null);
         if (mangaka == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy Mangaka với ID: " + mangakaId);
+            return result;
+        }
+        if (!dataAccessService.isMangakaUser(mangaka, (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem dữ liệu này!");
             return result;
         }
 
@@ -451,12 +466,19 @@ public class MangakaController {
     @Operation(summary = "Xem chi tiết đề xuất: comment/điểm/deadline của Tantou + comment của hội đồng")
     @GetMapping("/proposal-detail")
     @ResponseBody
-    public Map<String, Object> proposalDetail(@RequestParam String proposalId) {
+    public Map<String, Object> proposalDetail(@RequestParam String proposalId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         Proposal p = proposalRepository.findById(proposalId).orElse(null);
         if (p == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy đề xuất: " + proposalId);
+            return result;
+        }
+        User requester = (User) session.getAttribute("user");
+        if (!dataAccessService.isMangakaUser(p.getMangaka(), requester)
+                && !dataAccessService.isTantouOfMangaka(p.getMangaka(), requester)) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem đề xuất này!");
             return result;
         }
 
@@ -609,12 +631,17 @@ public class MangakaController {
     @Operation(summary = "[SWAGGER] Lấy danh sách chapter của một series")
     @GetMapping("/myseries/{seriesId}/data")
     @ResponseBody
-    public Map<String, Object> getSeriesData(@PathVariable String seriesId) {
+    public Map<String, Object> getSeriesData(@PathVariable String seriesId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         Series series = seriesRepository.findById(seriesId).orElse(null);
         if (series == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy series: " + seriesId);
+            return result;
+        }
+        if (!dataAccessService.isSeriesStaff(series, (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem series này!");
             return result;
         }
         result.put("status", "success");
@@ -804,12 +831,18 @@ public class MangakaController {
     @Operation(summary = "[SWAGGER] Lấy danh sách trang của một chapter")
     @GetMapping("/myseries/{sid}/{cid}/data")
     @ResponseBody
-    public Map<String, Object> getChapterData(@PathVariable String sid, @PathVariable String cid) {
+    public Map<String, Object> getChapterData(@PathVariable String sid, @PathVariable String cid,
+            HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         Chapter chapter = chapterRepository.findById(cid).orElse(null);
         if (chapter == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy chapter: " + cid);
+            return result;
+        }
+        if (!dataAccessService.isSeriesStaff(chapter.getSeries(), (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem chapter này!");
             return result;
         }
         try {
@@ -1164,12 +1197,17 @@ public class MangakaController {
     @Operation(summary = "[SWAGGER] Lấy thông tin submission")
     @GetMapping("/submission/{id}/data")
     @ResponseBody
-    public Map<String, Object> getSubmissionData(@PathVariable String id) {
+    public Map<String, Object> getSubmissionData(@PathVariable String id, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         Submission submission = submissionRepository.findById(id).orElse(null);
         if (submission == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy submission: " + id);
+            return result;
+        }
+        if (!isOwnSubmission(submission, (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem bài nộp này!");
             return result;
         }
         String seriesId = submission.getPageId().getChapter().getSeries().getId();
@@ -1186,12 +1224,17 @@ public class MangakaController {
     @PostMapping("/submission/{id}/submit/data")
     @ResponseBody
     public Map<String, Object> updateStatusData(@PathVariable String id,
-            @RequestParam String status, @RequestParam String comment) {
+            @RequestParam String status, @RequestParam String comment, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         Submission submission = submissionRepository.findById(id).orElse(null);
         if (submission == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy submission: " + id);
+            return result;
+        }
+        if (!isOwnSubmission(submission, (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền thao tác trên bài nộp này!");
             return result;
         }
         String normalizedStatus = status == null ? "" : status.trim().toLowerCase();
@@ -1232,12 +1275,17 @@ public class MangakaController {
     @GetMapping("/myseries/{sid}/{cid}/{pid}/edit/data")
     @ResponseBody
     public Map<String, Object> getPageEditData(@PathVariable String sid, @PathVariable String cid,
-            @PathVariable String pid) {
+            @PathVariable String pid, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         MangaPage page = mangaPageRepository.findById(pid).orElse(null);
         if (page == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy trang: " + pid);
+            return result;
+        }
+        if (page.getChapter() == null || !isOwnSeries(page.getChapter().getSeries(), (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem trang này!");
             return result;
         }
         result.put("status", "success");

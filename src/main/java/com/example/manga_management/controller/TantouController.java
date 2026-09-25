@@ -30,6 +30,7 @@ import com.example.manga_management.repository.SeriesRepository;
 import com.example.manga_management.repository.ChapterRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 import com.example.manga_management.service.EditorialAiService;
+import com.example.manga_management.service.DataAccessService;
 import com.example.manga_management.service.FileStorageService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,6 +50,7 @@ public class TantouController {
     private final com.example.manga_management.repository.LikeResultRepository likeResultRepository;
     private final EditorialAiService editorialAiService;
     private final FileStorageService fileStorageService;
+    private final DataAccessService dataAccessService;
 
     public TantouController(ProposalRepository proposalRepository, TantoEditorRepository tantoEditorRepository,
             NotificationController notificationController, MangakaRepository mangakaRepository,
@@ -56,8 +58,9 @@ public class TantouController {
             VoteSessionRepository voteSessionRepository,
             com.example.manga_management.repository.LikeResultRepository likeResultRepository,
             EditorialAiService editorialAiService,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService, DataAccessService dataAccessService) {
         this.fileStorageService = fileStorageService;
+        this.dataAccessService = dataAccessService;
         this.proposalRepository = proposalRepository;
         this.tantoEditorRepository = tantoEditorRepository;
         this.notificationController = notificationController;
@@ -140,13 +143,21 @@ public class TantouController {
     @Operation(summary = "Danh sách bản thảo mới chờ duyệt")
     @GetMapping("/proposals")
     @ResponseBody
-    public Map<String, Object> getProposals(@RequestParam String tantouId) {
+    public Map<String, Object> getProposals(@RequestParam String tantouId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
         TantoEditor editor = tantoEditorRepository.findById(tantouId).orElse(null);
         if (editor == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy Tantou!");
+            return result;
+        }
+
+        // Chỉ được xem danh sách của chính mình.
+        User requester = (User) session.getAttribute("user");
+        if (editor.getUser() == null || requester == null || !editor.getUser().getId().equals(requester.getId())) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem dữ liệu này!");
             return result;
         }
 
@@ -161,9 +172,13 @@ public class TantouController {
     @Operation(summary = "Danh sách đề xuất đã được Tantou duyệt, chờ nộp lên hội đồng")
     @GetMapping("/approved-proposals")
     @ResponseBody
-    public Map<String, Object> getApprovedProposals() {
+    public Map<String, Object> getApprovedProposals(HttpSession session) {
         Map<String, Object> result = new HashMap<>();
-        List<Proposal> list = proposalRepository.findByStatus("approved");
+        User requester = (User) session.getAttribute("user");
+        // Chỉ các đề xuất thuộc mangaka do tantou này phụ trách.
+        List<Proposal> list = proposalRepository.findByStatus("approved").stream()
+                .filter(p -> dataAccessService.isTantouOfMangaka(p.getMangaka(), requester))
+                .collect(Collectors.toList());
         result.put("status", "success");
         result.put("total", list.size());
         result.put("proposals", list);
@@ -368,6 +383,13 @@ public class TantouController {
         if (user == null) {
             result.put("status", "error");
             result.put("message", "Chưa đăng nhập!");
+            return result;
+        }
+
+        Mangaka mangaka = mangakaRepository.findById(mangakaId).orElse(null);
+        if (!dataAccessService.isTantouOfMangaka(mangaka, user)) {
+            result.put("status", "error");
+            result.put("message", "Bạn không phải tantou phụ trách mangaka này!");
             return result;
         }
 

@@ -28,6 +28,7 @@ import com.example.manga_management.repository.LikeResultRepository;
 import com.example.manga_management.repository.SeriesRepository;
 import com.example.manga_management.repository.SeriesVoteRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
+import com.example.manga_management.service.DataAccessService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,8 @@ public class SeriesController {
     private VoteSessionRepository voteSessionRepository;
     @Autowired
     private BoardRepository boardRepository;
+    @Autowired
+    private DataAccessService dataAccessService;
 
     /** Series này có thuộc đúng Mangaka đang đăng nhập không. */
     private boolean isOwnSeries(Series series, User user) {
@@ -115,13 +118,20 @@ public class SeriesController {
     @GetMapping("/{seriesId}/info")
     @Operation(summary = "Xem toàn bộ thông tin series: proposal, thể loại, vote, view, số chapter")
     @ResponseBody
-    public Map<String, Object> getSeriesInfo(@PathVariable String seriesId) {
+    public Map<String, Object> getSeriesInfo(@PathVariable String seriesId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
         Series series = seriesRepository.findById(seriesId).orElse(null);
         if (series == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy series: " + seriesId);
+            return result;
+        }
+
+        // Chỉ người liên quan (chủ series, tantou phụ trách, hội đồng, admin) mới xem được.
+        if (!dataAccessService.canViewSeriesInfo(series, (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem series này!");
             return result;
         }
 

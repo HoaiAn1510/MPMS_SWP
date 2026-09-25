@@ -20,6 +20,7 @@ import com.example.manga_management.entity.User;
 import com.example.manga_management.repository.ChapterRepository;
 import com.example.manga_management.repository.MangaPageRepository;
 import com.example.manga_management.service.ActivityLogService;
+import com.example.manga_management.service.DataAccessService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,17 +37,25 @@ public class ChapterController {
     private MangaPageRepository mangaPageRepository;
     @Autowired
     private ActivityLogService activityLogService;
+    @Autowired
+    private DataAccessService dataAccessService;
 
     @GetMapping("/{chapterId}/pages")
     @Operation(summary = "[SWAGGER] Lấy danh sách trang của một chapter")
     @ResponseBody
-    public Map<String, Object> getPagesByChapter(@PathVariable String chapterId) {
+    public Map<String, Object> getPagesByChapter(@PathVariable String chapterId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
         Chapter chapter = chapterRepository.findById(chapterId).orElse(null);
         if (chapter == null) {
             result.put("status", "error");
             result.put("message", "Không tìm thấy chapter: " + chapterId);
+            return result;
+        }
+
+        if (!dataAccessService.canViewSeriesContent(chapter.getSeries(), (User) session.getAttribute("user"))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem chapter này!");
             return result;
         }
 

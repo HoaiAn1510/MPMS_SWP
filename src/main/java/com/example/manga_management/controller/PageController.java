@@ -167,6 +167,17 @@ public class PageController {
                 && latest.get().getAssistant().getUser().getId().equals(user.getId());
     }
 
+    /** Assistant gọi request này có phải người được giao trong vòng task gần nhất của trang không (kể cả đã nộp). */
+    private boolean wasAssignedAssistant(MangaPage page, User user) {
+        if (page == null || user == null) {
+            return false;
+        }
+        return submissionRepository.findTopByPageIdIdOrderByIdDesc(page.getId())
+                .filter(s -> s.getAssistant() != null && s.getAssistant().getUser() != null
+                        && s.getAssistant().getUser().getId().equals(user.getId()))
+                .isPresent();
+    }
+
     /**
      * Chỉ về "untask" khi tất cả task của assistant đã được duyệt hết (không còn
      * submission intask hoặc done chờ duyệt).
@@ -257,8 +268,19 @@ public class PageController {
     @Operation(summary = "Thông tin submission (bài nộp) gần nhất của một trang")
     @GetMapping("/{pageId}/submission")
     @ResponseBody
-    public Map<String, Object> getPageSubmission(@PathVariable String pageId) {
+    public Map<String, Object> getPageSubmission(@PathVariable String pageId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
+
+        // Chỉ chủ series, tantou phụ trách hoặc trợ lý được giao trang này mới xem được.
+        User requester = (User) session.getAttribute("user");
+        MangaPage requestedPage = mangaPageRepository.findById(pageId).orElse(null);
+        if (requestedPage == null || (!isOwnerMangaka(requestedPage, requester)
+                && !isAssignedTantou(requestedPage, requester)
+                && !wasAssignedAssistant(requestedPage, requester))) {
+            result.put("status", "error");
+            result.put("message", "Bạn không có quyền xem thông tin trang này!");
+            return result;
+        }
 
         Optional<Submission> optSubmission = submissionRepository.findTopByPageIdIdOrderByIdDesc(pageId);
         if (optSubmission.isEmpty()) {
