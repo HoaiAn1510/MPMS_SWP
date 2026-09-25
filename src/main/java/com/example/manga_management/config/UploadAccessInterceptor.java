@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Chặn tải file nhạy cảm (/proposal, /series-defense, /tantou-profile) nếu
+ * Chặn tải file nhạy cảm (/proposal, /series-defense, /tantou-profile, /MangaPage, /Submission) nếu
  * người dùng không phải người liên quan tới dữ liệu đó. Đăng nhập vẫn do
  * SecurityConfig đảm nhiệm; lớp này bổ sung phân quyền theo dữ liệu.
  */
@@ -27,7 +27,9 @@ public class UploadAccessInterceptor implements HandlerInterceptor {
         Object userObj = request.getSession(false) != null ? request.getSession(false).getAttribute("user") : null;
         User user = userObj instanceof User u ? u : null;
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        if (dataAccessService.canAccessSensitiveFile(user, path)) {
+        boolean production = path.startsWith("/MangaPage/") || path.startsWith("/Submission/");
+        if (production ? dataAccessService.canAccessProductionImage(user, path)
+                : dataAccessService.canAccessSensitiveFile(user, path)) {
             return true;
         }
         response.sendError(HttpServletResponse.SC_FORBIDDEN);

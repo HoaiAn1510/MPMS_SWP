@@ -101,4 +101,21 @@
     },
     true,
   );
+
+  // ── Đăng xuất: link /login/logout được chuyển thành POST (kèm CSRF token) ──
+  document.addEventListener(
+    "click",
+    function (event) {
+      const link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+      if (!link || !/\/login\/logout\/?$/.test(new URL(link.href, window.location.href).pathname)) return;
+      event.preventDefault();
+      window
+        .fetch("/login/logout", { method: "POST" })
+        .catch(function () {})
+        .finally(function () {
+          window.location.href = "/login";
+        });
+    },
+    true,
+  );
 })();

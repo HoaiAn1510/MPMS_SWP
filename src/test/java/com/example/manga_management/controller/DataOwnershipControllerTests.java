@@ -49,7 +49,7 @@ class DataOwnershipControllerTests {
     void setUp() {
         f = new OwnershipFixture();
         access = new DataAccessService(mock(ProposalRepository.class), mock(VoteSessionRepository.class),
-                mock(AssistantRepository.class));
+                mock(AssistantRepository.class), mock(MangaPageRepository.class), mock(SubmissionRepository.class));
         chapterRepository = mock(ChapterRepository.class);
         mangaPageRepository = mock(MangaPageRepository.class);
         seriesRepository = mock(SeriesRepository.class);

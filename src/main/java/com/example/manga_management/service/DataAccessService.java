@@ -5,15 +5,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.manga_management.entity.Assistant;
+import com.example.manga_management.entity.MangaPage;
 import com.example.manga_management.entity.Mangaka;
 import com.example.manga_management.entity.Proposal;
 import com.example.manga_management.entity.Series;
+import com.example.manga_management.entity.Submission;
 import com.example.manga_management.entity.User;
 import com.example.manga_management.entity.VoteSession;
 import com.example.manga_management.repository.AssistantRepository;
+import com.example.manga_management.repository.MangaPageRepository;
 import com.example.manga_management.repository.ProposalRepository;
+import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 
 /**
@@ -28,13 +33,24 @@ public class DataAccessService {
     private static final Pattern SENSITIVE_FILE = Pattern
             .compile("^/(proposal|series-defense|tantou-profile)/([A-Za-z0-9_-]+)\\.[A-Za-z0-9]{1,10}$");
 
+    /** /MangaPage/PG00001.png, /Submission/SUB001.png, /Submission/SUB001_v2_assigned.png */
+    private static final Pattern PAGE_IMAGE = Pattern.compile("^/MangaPage/([A-Za-z0-9]+)\\.[A-Za-z0-9]{1,10}$");
+    private static final Pattern SUBMISSION_IMAGE = Pattern
+            .compile("^/Submission/([A-Za-z0-9]+)(?:_[A-Za-z0-9_]+)?\\.[A-Za-z0-9]{1,10}$");
+
     private final ProposalRepository proposalRepository;
+    private final MangaPageRepository mangaPageRepository;
+    private final SubmissionRepository submissionRepository;
     private final VoteSessionRepository voteSessionRepository;
     private final AssistantRepository assistantRepository;
 
     public DataAccessService(ProposalRepository proposalRepository,
             VoteSessionRepository voteSessionRepository,
-            AssistantRepository assistantRepository) {
+            AssistantRepository assistantRepository,
+            MangaPageRepository mangaPageRepository,
+            SubmissionRepository submissionRepository) {
+        this.mangaPageRepository = mangaPageRepository;
+        this.submissionRepository = submissionRepository;
         this.proposalRepository = proposalRepository;
         this.voteSessionRepository = voteSessionRepository;
         this.assistantRepository = assistantRepository;
@@ -99,6 +115,7 @@ public class DataAccessService {
      * Người dùng có được tải file nhạy cảm {@code requestPath} (đã decode, vd
      * {@code /proposal/PPS001.pdf}) hay không. Đường dẫn lạ → từ chối.
      */
+    @Transactional(readOnly = true)
     public boolean canAccessSensitiveFile(User user, String requestPath) {
         if (user == null || requestPath == null) {
             return false;
@@ -135,5 +152,45 @@ public class DataAccessService {
         // Bản thảo đề xuất: tác giả, tantou phụ trách, hội đồng (khi đã lên bàn hội đồng).
         return boardVisible || isMangakaUser(proposal.getMangaka(), user)
                 || isTantouOfMangaka(proposal.getMangaka(), user);
+    }
+
+    /**
+     * Ảnh trang / bài nộp ({@code /MangaPage/**}, {@code /Submission/**}) là bản thảo chưa
+     * xuất bản: chỉ admin, chủ series, tantou phụ trách và trợ lý được giao trang đó xem được.
+     */
+    @Transactional(readOnly = true)
+    public boolean canAccessProductionImage(User user, String requestPath) {
+        if (user == null || requestPath == null) {
+            return false;
+        }
+        MangaPage page;
+        Matcher pageMatch = PAGE_IMAGE.matcher(requestPath);
+        Matcher submissionMatch = SUBMISSION_IMAGE.matcher(requestPath);
+        if (pageMatch.matches()) {
+            page = mangaPageRepository.findById(pageMatch.group(1)).orElse(null);
+        } else if (submissionMatch.matches()) {
+            Submission submission = submissionRepository.findById(submissionMatch.group(1)).orElse(null);
+            if (submission == null) {
+                return hasRole(user, "ADMIN");
+            }
+            if (submission.getAssistant() != null && submission.getAssistant().getUser() != null
+                    && user.getId() != null && user.getId().equals(submission.getAssistant().getUser().getId())) {
+                return true;
+            }
+            page = submission.getPageId();
+        } else {
+            return false;
+        }
+        if (page == null || page.getChapter() == null) {
+            return hasRole(user, "ADMIN");
+        }
+        Series series = page.getChapter().getSeries();
+        if (hasRole(user, "ADMIN") || isSeriesStaff(series, user)) {
+            return true;
+        }
+        // Trợ lý từng được giao trang này (kể cả các vòng trước).
+        return submissionRepository.findByPageIdId(page.getId()).stream()
+                .anyMatch(s -> s.getAssistant() != null && s.getAssistant().getUser() != null
+                        && user.getId() != null && user.getId().equals(s.getAssistant().getUser().getId()));
     }
 }

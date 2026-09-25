@@ -13,9 +13,12 @@ import org.junit.jupiter.api.Test;
 
 import com.example.manga_management.entity.Assistant;
 import com.example.manga_management.entity.Mangaka;
+import com.example.manga_management.entity.Submission;
 import com.example.manga_management.entity.VoteSession;
 import com.example.manga_management.repository.AssistantRepository;
+import com.example.manga_management.repository.MangaPageRepository;
 import com.example.manga_management.repository.ProposalRepository;
+import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 import com.example.manga_management.support.OwnershipFixture;
 
@@ -25,6 +28,8 @@ class DataAccessServiceTests {
     private ProposalRepository proposalRepository;
     private VoteSessionRepository voteSessionRepository;
     private AssistantRepository assistantRepository;
+    private MangaPageRepository mangaPageRepository;
+    private SubmissionRepository submissionRepository;
     private DataAccessService service;
 
     @BeforeEach
@@ -33,7 +38,10 @@ class DataAccessServiceTests {
         proposalRepository = mock(ProposalRepository.class);
         voteSessionRepository = mock(VoteSessionRepository.class);
         assistantRepository = mock(AssistantRepository.class);
-        service = new DataAccessService(proposalRepository, voteSessionRepository, assistantRepository);
+        mangaPageRepository = mock(MangaPageRepository.class);
+        submissionRepository = mock(SubmissionRepository.class);
+        service = new DataAccessService(proposalRepository, voteSessionRepository, assistantRepository,
+                mangaPageRepository, submissionRepository);
         when(proposalRepository.findById("PPS001")).thenReturn(Optional.of(f.proposal));
     }
 
@@ -116,5 +124,42 @@ class DataAccessServiceTests {
         assertFalse(service.canAccessSensitiveFile(f.adminUser, "/proposal/sub/PPS001.pdf"));
         assertFalse(service.canAccessSensitiveFile(f.adminUser, "/MangaPage/PG1.png"));
         assertFalse(service.canAccessSensitiveFile(null, "/proposal/PPS001.pdf"));
+    }
+
+    @Test
+    void pageAndSubmissionImagesOnlyForOwnerTantouAssignedAssistantAdmin() {
+        when(mangaPageRepository.findById("PG00001")).thenReturn(Optional.of(f.page));
+        Assistant assistant = new Assistant();
+        assistant.setId("AST001");
+        assistant.setUser(f.assistantUser);
+        Submission submission = new Submission();
+        submission.setId("SUB001");
+        submission.setPageId(f.page);
+        submission.setAssistant(assistant);
+        when(submissionRepository.findById("SUB001")).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByPageIdId("PG00001")).thenReturn(java.util.List.of(submission));
+
+        for (String path : new String[] {"/MangaPage/PG00001.png", "/Submission/SUB001.png",
+                "/Submission/SUB001_assigned.png", "/Submission/SUB001_v2_submitted.png"}) {
+            assertTrue(service.canAccessProductionImage(f.mangakaUser, path), path);
+            assertTrue(service.canAccessProductionImage(f.tantouUser, path), path);
+            assertTrue(service.canAccessProductionImage(f.assistantUser, path), path);
+            assertTrue(service.canAccessProductionImage(f.adminUser, path), path);
+            assertFalse(service.canAccessProductionImage(f.otherMangakaUser, path), path);
+            assertFalse(service.canAccessProductionImage(f.otherTantouUser, path), path);
+            assertFalse(service.canAccessProductionImage(f.boardUser, path), path);
+            assertFalse(service.canAccessProductionImage(null, path), path);
+        }
+        // Trợ lý khác (không được giao trang này) không xem được
+        assertFalse(service.canAccessProductionImage(OwnershipFixture.user("USR_AST2", "ASSISTANT"),
+                "/MangaPage/PG00001.png"));
+    }
+
+    @Test
+    void productionImageRejectsUnknownIdsAndTraversal() {
+        assertFalse(service.canAccessProductionImage(f.mangakaUser, "/MangaPage/PG99999.png"));
+        assertFalse(service.canAccessProductionImage(f.mangakaUser, "/MangaPage/../application.properties"));
+        assertFalse(service.canAccessProductionImage(f.mangakaUser, "/Submission/sub/SUB001.png"));
+        assertTrue(service.canAccessProductionImage(f.adminUser, "/MangaPage/PG99999.png"));
     }
 }

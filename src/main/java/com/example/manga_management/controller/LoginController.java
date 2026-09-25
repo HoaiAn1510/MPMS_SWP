@@ -164,9 +164,17 @@ public class LoginController {
 
     
 
-    @GetMapping("/logout")
+    // Đăng xuất phải là POST (có CSRF token) để trang khác không ép người dùng đăng xuất bằng 1 link.
+    // Nút "Đăng xuất" trong giao diện được csrf.js chuyển thành POST.
+    @PostMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();
+        return "redirect:/login";
+    }
+
+    // Link cũ /login/logout (GET) không còn đăng xuất; chỉ đưa về trang đăng nhập.
+    @GetMapping("/logout")
+    public String logoutPage() {
         return "redirect:/login";
     }
 }

@@ -3,6 +3,7 @@ package com.example.manga_management.config;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -82,6 +83,26 @@ class CsrfProtectionTests {
                 .param("txtUsername", "no-such-user")
                 .param("txtPassword", "wrong")).andReturn().getResponse().getStatus();
         assertNotEquals(403, viaForm);
+    }
+
+    @Test
+    void csrfFailureOnAjaxRequestReturnsJsonMessage() throws Exception {
+        var response = mockMvc.perform(post("/api/page/PG00001/finish").header("Accept", "application/json"))
+                .andReturn().getResponse();
+
+        assertEquals(403, response.getStatus());
+        assertTrue(response.getContentAsString().contains("\"status\":\"error\""));
+    }
+
+    @Test
+    void logoutMustBePostAndGetDoesNotEndSession() throws Exception {
+        var session = new org.springframework.mock.web.MockHttpSession();
+        session.setAttribute("user", new com.example.manga_management.entity.User());
+        // GET không đăng xuất
+        mockMvc.perform(get("/login/logout").session(session));
+        assertNotNull(session.getAttribute("user"));
+        // POST không token bị chặn
+        assertEquals(403, mockMvc.perform(post("/login/logout").session(session)).andReturn().getResponse().getStatus());
     }
 
     @Test

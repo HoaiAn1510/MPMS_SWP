@@ -52,7 +52,8 @@ public class UploadResourceConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         // File nhạy cảm: chỉ vai trò liên quan tới dữ liệu mới tải được.
         registry.addInterceptor(new UploadAccessInterceptor(dataAccessService))
-                .addPathPatterns("/proposal/**", "/series-defense/**", "/tantou-profile/**");
+                .addPathPatterns("/proposal/**", "/series-defense/**", "/tantou-profile/**",
+                        "/MangaPage/**", "/Submission/**");
     }
 
     private String externalLocation(String dir) {
