@@ -1,10 +1,6 @@
 package com.example.manga_management.controller;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -31,6 +27,7 @@ import com.example.manga_management.repository.FrameTaskRepository;
 import com.example.manga_management.repository.MangaPageRepository;
 import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.SubmissionVersionRepository;
+import com.example.manga_management.service.FileStorageService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -51,12 +48,16 @@ public class AssistantController {
 
     private final NotificationController notificationController;
 
+    private final FileStorageService fileStorageService;
+
     public AssistantController(AssistantRepository assistantRepository,
             SubmissionRepository submissionRepository,
             MangaPageRepository mangaPageRepository,
             FrameTaskRepository frameTaskRepository,
             SubmissionVersionRepository submissionVersionRepository,
-            NotificationController notificationController) {
+            NotificationController notificationController,
+            FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
         this.assistantRepository = assistantRepository;
         this.submissionRepository = submissionRepository;
         this.mangaPageRepository = mangaPageRepository;
@@ -75,15 +76,8 @@ public class AssistantController {
             return null;
         }
         try {
-            Path source = Paths.get("src/main/resources/static" + submission.getFilePath());
-            if (!Files.exists(source)) {
-                return null;
-            }
             String fileName = submission.getId() + "_v" + roundNo + "_submitted.png";
-            Path dir = Paths.get("src/main/resources/static/Submission");
-            Files.createDirectories(dir);
-            Files.copy(source, dir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-            return "/Submission/" + fileName;
+            return fileStorageService.copy(submission.getFilePath(), FileStorageService.DIR_SUBMISSION, fileName);
         } catch (IOException e) {
             // Ảnh lịch sử hỏng không được phép chặn việc nộp bài.
             return null;

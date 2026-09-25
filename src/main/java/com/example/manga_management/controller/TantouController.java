@@ -2,9 +2,6 @@ package com.example.manga_management.controller;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -33,6 +30,7 @@ import com.example.manga_management.repository.SeriesRepository;
 import com.example.manga_management.repository.ChapterRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 import com.example.manga_management.service.EditorialAiService;
+import com.example.manga_management.service.FileStorageService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpSession;
@@ -50,13 +48,16 @@ public class TantouController {
     private final VoteSessionRepository voteSessionRepository;
     private final com.example.manga_management.repository.LikeResultRepository likeResultRepository;
     private final EditorialAiService editorialAiService;
+    private final FileStorageService fileStorageService;
 
     public TantouController(ProposalRepository proposalRepository, TantoEditorRepository tantoEditorRepository,
             NotificationController notificationController, MangakaRepository mangakaRepository,
             SeriesRepository seriesRepository, ChapterRepository chapterRepository,
             VoteSessionRepository voteSessionRepository,
             com.example.manga_management.repository.LikeResultRepository likeResultRepository,
-            EditorialAiService editorialAiService) {
+            EditorialAiService editorialAiService,
+            FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
         this.proposalRepository = proposalRepository;
         this.tantoEditorRepository = tantoEditorRepository;
         this.notificationController = notificationController;
@@ -544,18 +545,10 @@ public class TantouController {
         }
 
         try {
-            String workingDir = System.getProperty("user.dir");
-            String uploadDir = workingDir + File.separator + "src" + File.separator + "main" + File.separator
-                    + "resources" + File.separator + "static" + File.separator + "series-defense" + File.separator;
-
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             String sessionId = generateSessionId();
-            String savedFileName = sessionId + ".pdf";
-            fileDefense.transferTo(uploadPath.resolve(savedFileName).toFile());
+            // Tên file do server sinh; nội dung phải thật sự là PDF.
+            String savedPath = fileStorageService.saveUpload(FileStorageService.DIR_SERIES_DEFENSE, sessionId,
+                    fileDefense, FileStorageService.PDF_EXTENSIONS);
 
             VoteSession vs = new VoteSession();
             vs.setId(sessionId);
@@ -565,7 +558,7 @@ public class TantouController {
             vs.setStatus("active");
             vs.setCreatedAt(LocalDate.now());
             vs.setAutoCreated(false);
-            vs.setDefenseFilePath("/series-defense/" + savedFileName);
+            vs.setDefenseFilePath(savedPath);
             vs.setDefenseNote(note != null ? note.trim() : null);
             voteSessionRepository.save(vs);
 
@@ -587,6 +580,9 @@ public class TantouController {
             result.put("status", "success");
             result.put("sessionId", sessionId);
             result.put("message", "Đã nộp hồ sơ bảo vệ, chờ hội đồng bỏ phiếu!");
+        } catch (IllegalArgumentException e) {
+            result.put("status", "error");
+            result.put("message", "File PDF không hợp lệ: " + e.getMessage());
         } catch (IOException e) {
             result.put("status", "error");
             result.put("message", "Lỗi hệ thống: " + e.getMessage());

@@ -31,7 +31,7 @@ public class User {
 
     // Không bao giờ được serialize ra JSON — dùng nội bộ để kiểm tra đăng nhập.
     @JsonIgnore
-    @Column(name = "Password", nullable = false, length = 30)
+    @Column(name = "Password", nullable = false, length = 100)
     private String password;
 
     @Column(name = "Avatar", length = 60)

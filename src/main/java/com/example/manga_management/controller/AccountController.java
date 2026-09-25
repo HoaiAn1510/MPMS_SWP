@@ -1,9 +1,11 @@
 package com.example.manga_management.controller;
 
 import com.example.manga_management.dto.ApiResult;
+import com.example.manga_management.config.PasswordHasher;
 import com.example.manga_management.entity.User;
 import com.example.manga_management.repository.*;
 import com.example.manga_management.service.EmailService;
+import com.example.manga_management.service.FileStorageService;
 import com.example.manga_management.service.OtpService;
 import com.example.manga_management.service.SmsService;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ public class AccountController {
     private final SeriesRepository seriesRepository;
     private final SubmissionRepository submissionRepository;
     private final EditorialVoteRepository editorialVoteRepository;
+    private final FileStorageService fileStorageService;
 
     public AccountController(UserRepository userRepository,
                              OtpService otpService,
@@ -56,7 +58,9 @@ public class AccountController {
                              BoardRepository boardRepository,
                              SeriesRepository seriesRepository,
                              SubmissionRepository submissionRepository,
-                             EditorialVoteRepository editorialVoteRepository) {
+                             EditorialVoteRepository editorialVoteRepository,
+                             FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
         this.userRepository = userRepository;
         this.otpService = otpService;
         this.emailService = emailService;
@@ -238,7 +242,7 @@ public class AccountController {
                     .body(new ApiResult("error", "Mật khẩu nhập lại không khớp"));
         }
 
-        user.setPassword(newPassword);
+        user.setPassword(PasswordHasher.hash(newPassword));
         User savedUser = userRepository.save(user);
 
         session.removeAttribute("otpVerified");
@@ -837,26 +841,21 @@ public class AccountController {
             return result;
         }
         try {
-            String originalName = file.getOriginalFilename();
-            String ext = originalName != null && originalName.contains(".")
-                ? originalName.substring(originalName.lastIndexOf(".")) : ".jpg";
-            if (!List.of(".jpg", ".jpeg", ".png", ".gif", ".webp").contains(ext.toLowerCase())) {
+            // Tên file do server sinh, đuôi suy ra từ nội dung thật của file.
+            String avatarPath;
+            try {
+                avatarPath = fileStorageService.saveUpload(FileStorageService.DIR_AVATARS,
+                        "avatar_" + user.getId(), file, FileStorageService.AVATAR_EXTENSIONS);
+            } catch (IllegalArgumentException e) {
                 result.put("status", "error");
                 result.put("message", "Chỉ chấp nhận file ảnh (jpg, png, gif, webp)");
                 return result;
             }
-            String fileName = "avatar_" + user.getId() + ext;
-            String uploadDir = System.getProperty("user.dir") + File.separator
-                + "src" + File.separator + "main" + File.separator
-                + "resources" + File.separator + "static" + File.separator + "avatars" + File.separator;
-            java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
-            java.nio.file.Files.createDirectories(uploadPath);
-            file.transferTo(uploadPath.resolve(fileName).toFile());
-            user.setAvatar("/avatars/" + fileName);
+            user.setAvatar(avatarPath);
             User savedUser = userRepository.save(user);
             session.setAttribute("user", savedUser);
             result.put("status", "success");
-            result.put("avatarUrl", "/avatars/" + fileName);
+            result.put("avatarUrl", avatarPath);
         } catch (Exception e) {
             result.put("status", "error");
             result.put("message", "Lỗi upload: " + e.getMessage());

@@ -1,10 +1,6 @@
 package com.example.manga_management.controller;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
@@ -34,6 +30,7 @@ import com.example.manga_management.repository.MangaPageRepository;
 import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.SubmissionVersionRepository;
 import com.example.manga_management.service.ActivityLogService;
+import com.example.manga_management.service.FileStorageService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -56,11 +53,14 @@ public class PageController {
     private final SubmissionVersionRepository submissionVersionRepository;
     private final NotificationController notificationController;
     private final ActivityLogService activityLogService;
+    private final FileStorageService fileStorageService;
 
     public PageController(AssistantRepository assistantRepository, SubmissionRepository submissionRepository,
             MangaPageRepository mangaPageRepository, FrameTaskRepository frameTaskRepository,
             SubmissionVersionRepository submissionVersionRepository,
-            NotificationController notificationController, ActivityLogService activityLogService) {
+            NotificationController notificationController, ActivityLogService activityLogService,
+            FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
         this.assistantRepository = assistantRepository;
         this.submissionRepository = submissionRepository;
         this.mangaPageRepository = mangaPageRepository;
@@ -70,10 +70,8 @@ public class PageController {
         this.activityLogService = activityLogService;
     }
 
-    private static final Path SUBMISSION_DIR = Paths.get("src/main/resources/static/Submission");
-
     /**
-     * Copy một ảnh trong static/ sang tên file riêng của vòng giao việc, để bản
+     * Copy một ảnh đã lưu sang tên file riêng của vòng giao việc, để bản
      * của vòng đó không bị lần lưu/nộp sau ghi đè. Trả về đường dẫn tương đối đã
      * lưu, hoặc null nếu không có ảnh nguồn.
      */
@@ -82,17 +80,8 @@ public class PageController {
             return null;
         }
         try {
-            Path source = Paths.get("src/main/resources/static" + sourceRelPath);
-            if (!Files.exists(source)) {
-                return null;
-            }
             String fileName = submissionId + "_v" + roundNo + "_" + kind + ".png";
-            Files.createDirectories(SUBMISSION_DIR);
-            Path target = SUBMISSION_DIR.resolve(fileName);
-            if (!source.equals(target)) {
-                Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return "/Submission/" + fileName;
+            return fileStorageService.copy(sourceRelPath, FileStorageService.DIR_SUBMISSION, fileName);
         } catch (IOException e) {
             // Ảnh phiên bản chỉ phục vụ tra cứu lịch sử — hỏng ảnh không được phép
             // chặn thao tác giao việc/duyệt bài đang diễn ra.
@@ -236,14 +225,10 @@ public class PageController {
             }
 
             byte[] imageBytes = Base64.getDecoder().decode(base64);
-            String uploadDir = "src/main/resources/static/MangaPage/";
-            Files.createDirectories(Paths.get(uploadDir));
+            String savedPath = fileStorageService.saveBytes(FileStorageService.DIR_MANGA_PAGE,
+                    pageId + ".png", imageBytes, FileStorageService.IMAGE_EXTENSIONS);
 
-            String fileName = pageId + ".png";
-            Path filePath = Paths.get(uploadDir + fileName);
-            Files.write(filePath, imageBytes);
-
-            page.setFilePath("/MangaPage/" + fileName);
+            page.setFilePath(savedPath);
             // Không ép status về "unfinish" ở đây — nếu trang đã có task
             // (intask/done/finish), lưu bản vẽ (vd sửa lại sau khi duyệt) không
             // được phép làm mất trạng thái đó. Trang mới tạo vốn đã "unfinish"
@@ -258,7 +243,7 @@ public class PageController {
             result.put("redirectUrl", "/manga/mangaka/myseries/" + seriesId + "/" + chapterId);
         } catch (IllegalArgumentException e) {
             result.put("status", "error");
-            result.put("message", "Base64 không hợp lệ");
+            result.put("message", "Ảnh không hợp lệ (cần PNG/JPG/WEBP dạng base64)");
         } catch (IOException e) {
             result.put("status", "error");
             result.put("message", "Lỗi ghi file: " + e.getMessage());
@@ -441,11 +426,12 @@ public class PageController {
             // để lần trợ lý lưu bài sau này (ghi /Submission/{id}.png) không đè lên.
             if (page.getFilePath() != null && !page.getFilePath().isBlank()) {
                 String fileName = submission.getId() + "_assigned.png";
-                Path source = Paths.get("src/main/resources/static" + page.getFilePath());
-                Path targetDir = Paths.get("src/main/resources/static/Submission");
-                Files.createDirectories(targetDir);
-                Files.copy(source, targetDir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-                submission.setAssignedFilePath("/Submission/" + fileName);
+                String assignedPath = fileStorageService.copy(page.getFilePath(),
+                        FileStorageService.DIR_SUBMISSION, fileName);
+                if (assignedPath == null) {
+                    throw new IOException("Không tìm thấy ảnh trang: " + page.getFilePath());
+                }
+                submission.setAssignedFilePath(assignedPath);
             }
 
             submission.setCurrentRound(1);
@@ -604,13 +590,10 @@ public class PageController {
         // Trước khi duyệt, bài chỉ nằm trong submission nên không đè trang tác giả.
         if (sub.getFilePath() != null && !sub.getFilePath().isBlank()) {
             try {
-                Path src = Paths.get("src/main/resources/static" + sub.getFilePath());
-                if (Files.exists(src)) {
-                    Path pageDir = Paths.get("src/main/resources/static/MangaPage");
-                    Files.createDirectories(pageDir);
-                    Files.copy(src, pageDir.resolve(page.getId() + ".png"),
-                            StandardCopyOption.REPLACE_EXISTING);
-                    page.setFilePath("/MangaPage/" + page.getId() + ".png");
+                String pagePath = fileStorageService.copy(sub.getFilePath(),
+                        FileStorageService.DIR_MANGA_PAGE, page.getId() + ".png");
+                if (pagePath != null) {
+                    page.setFilePath(pagePath);
                     mangaPageRepository.save(page);
                 }
             } catch (IOException e) {
@@ -808,23 +791,17 @@ public class PageController {
 
                 if (chosenPath != null && !chosenPath.isBlank()) {
                     try {
-                        Path srcFile = Paths.get("src/main/resources/static" + chosenPath);
-                        if (Files.exists(srcFile)) {
+                        if (fileStorageService.exists(chosenPath)) {
                             // 1) Bản được chọn → "bản tác giả giao" mới (bất biến).
-                            String assignedRel = "/Submission/" + submission.getId() + "_assigned.png";
-                            Path assignedTarget = Paths.get("src/main/resources/static" + assignedRel);
-                            Files.createDirectories(assignedTarget.getParent());
-                            if (!srcFile.equals(assignedTarget)) {
-                                Files.copy(srcFile, assignedTarget, StandardCopyOption.REPLACE_EXISTING);
-                            }
+                            String assignedRel = fileStorageService.copy(chosenPath,
+                                    FileStorageService.DIR_SUBMISSION, submission.getId() + "_assigned.png");
                             submission.setAssignedFilePath(assignedRel);
 
                             // 2) Ảnh trang chính thức = bản được chọn (bỏ qua nếu đã trùng).
                             String pageRel = "/MangaPage/" + page.getId() + ".png";
-                            Path pageTarget = Paths.get("src/main/resources/static" + pageRel);
-                            if (!srcFile.equals(pageTarget)) {
-                                Files.createDirectories(pageTarget.getParent());
-                                Files.copy(srcFile, pageTarget, StandardCopyOption.REPLACE_EXISTING);
+                            if (!pageRel.equals(chosenPath)) {
+                                fileStorageService.copy(chosenPath, FileStorageService.DIR_MANGA_PAGE,
+                                        page.getId() + ".png");
                                 page.setFilePath(pageRel);
                             }
                         }

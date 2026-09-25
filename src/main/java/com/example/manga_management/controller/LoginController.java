@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.example.manga_management.config.PasswordHasher;
 import com.example.manga_management.entity.User;
 import com.example.manga_management.repository.ProposalRepository;
 import com.example.manga_management.repository.TantoEditorRepository;
@@ -58,6 +59,7 @@ public class LoginController {
             @RequestParam String txtUsername,
             @RequestParam String txtPassword,
             HttpSession session,
+            jakarta.servlet.http.HttpServletRequest request,
             Model model) {
         User user = userService.login(txtUsername, txtPassword);
 
@@ -66,6 +68,7 @@ public class LoginController {
             return "login";
         }
 
+        request.changeSessionId();
         session.setAttribute("user", user);
 
         switch (user.getRole().toLowerCase()) {
@@ -145,7 +148,7 @@ public class LoginController {
         if (user == null) {
             return ResponseEntity.badRequest().body(result(false, "Không thể cập nhật mật khẩu"));
         }
-        user.setPassword(newPassword);
+        user.setPassword(PasswordHasher.hash(newPassword));
         userRepository.save(user);
         session.removeAttribute("forgotPasswordUserId");
         session.removeAttribute("forgotPasswordOtpKey");

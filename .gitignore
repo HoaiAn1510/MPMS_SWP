@@ -41,3 +41,6 @@ build/
 # Ignore build outputs & node_modules
 outputs/
 **/node_modules/
+# Local run logs
+spring-run*.log
+/src/main/resources/static/avatars/

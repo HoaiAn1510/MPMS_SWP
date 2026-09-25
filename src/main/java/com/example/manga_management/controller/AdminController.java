@@ -41,6 +41,7 @@ import com.example.manga_management.entity.Series;
 import com.example.manga_management.entity.SeriesVote;
 import com.example.manga_management.entity.Submission;
 import com.example.manga_management.entity.TantoEditor;
+import com.example.manga_management.config.PasswordHasher;
 import com.example.manga_management.entity.User;
 import com.example.manga_management.entity.VoteSession;
 import com.example.manga_management.repository.ActivityLogRepository;
@@ -455,7 +456,7 @@ public class AdminController {
             User newUser = new User();
             newUser.setId(newId);
             newUser.setUsername(body.get("username"));
-            newUser.setPassword(body.get("password"));
+            newUser.setPassword(PasswordHasher.hash(body.get("password")));
             newUser.setFullname(body.getOrDefault("fullname", ""));
             newUser.setEmail(body.getOrDefault("email", ""));
             newUser.setRole(role);
@@ -530,7 +531,7 @@ public class AdminController {
                 u.setEmail(body.get("email"));
             }
             if (isSet(body, "password")) {
-                u.setPassword(body.get("password"));
+                u.setPassword(PasswordHasher.hash(body.get("password")));
             }
             // Không cho đổi role vì liên quan đến profile table
 

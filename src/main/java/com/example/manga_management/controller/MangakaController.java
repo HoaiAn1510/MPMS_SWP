@@ -2,9 +2,6 @@ package com.example.manga_management.controller;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,6 +42,7 @@ import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.VoteSessionRepository;
 import com.example.manga_management.service.ActivityLogService;
 import com.example.manga_management.service.BookJacketStorageService;
+import com.example.manga_management.service.FileStorageService;
 import com.example.manga_management.service.ProposalService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,6 +67,7 @@ public class MangakaController {
     private final ActivityLogService activityLogService;
     private final VoteSessionRepository voteSessionRepository;
     private final BookJacketStorageService bookJacketStorageService;
+    private final FileStorageService fileStorageService;
 
     public MangakaController(ProposalRepository proposalRepository, MangakaRepository mangakaRepository,
             SeriesRepository seriesRepository,
@@ -77,7 +76,9 @@ public class MangakaController {
             NotificationController notificationController, AssistantRepository assistantRepository,
             ProposalService proposalService, ActivityLogService activityLogService,
             VoteSessionRepository voteSessionRepository,
-            BookJacketStorageService bookJacketStorageService) {
+            BookJacketStorageService bookJacketStorageService,
+            FileStorageService fileStorageService) {
+        this.fileStorageService = fileStorageService;
         this.proposalRepository = proposalRepository;
         this.mangakaRepository = mangakaRepository;
         this.assistantRepository = assistantRepository;
@@ -314,15 +315,6 @@ public class MangakaController {
         }
 
         try {
-            String workingDir = System.getProperty("user.dir");
-            String uploadDir = workingDir + File.separator + "src" + File.separator + "main" + File.separator
-                    + "resources" + File.separator + "static" + File.separator + "proposal" + File.separator;
-
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
             // Dựa trên ID lớn nhất hiện có (không dùng count()+1) — count()+1 sẽ
             // sinh trùng ID cũ sau khi có đề xuất bị xoá, gây đè dữ liệu.
             String lastProposalId = proposalRepository.findTopByOrderByIdDesc()
@@ -330,14 +322,9 @@ public class MangakaController {
             int nextNum = Integer.parseInt(lastProposalId.replaceAll("[^0-9]", "")) + 1;
             String nextId = String.format("PPS%03d", nextNum);
 
-            String originalName = fileManuscript.getOriginalFilename();
-            String extension = ".pdf";
-            if (originalName != null && originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf("."));
-            }
-
-            String shortFileName = nextId + extension;
-            fileManuscript.transferTo(uploadPath.resolve(shortFileName).toFile());
+            // Tên file do server sinh; nội dung phải thật sự là PDF.
+            String savedPath = fileStorageService.saveUpload(FileStorageService.DIR_PROPOSAL, nextId,
+                    fileManuscript, FileStorageService.PDF_EXTENSIONS);
 
             Proposal proposal = new Proposal();
             proposal.setId(nextId);
@@ -345,7 +332,7 @@ public class MangakaController {
             proposal.setSeriesName(txtSeriesName.trim());
             proposal.setGenre(genre != null ? genre.trim() : null);
             proposal.setPlannedChapterCount(plannedChapterCount);
-            proposal.setFilePath("/proposal/" + shortFileName);
+            proposal.setFilePath(savedPath);
             proposal.setStatus("new");
             proposal.setSubmittedAt(java.time.LocalDateTime.now());
             proposalRepository.save(proposal);
@@ -357,6 +344,9 @@ public class MangakaController {
             result.put("proposalId", nextId);
             result.put("message", "Đã nộp bản thảo thành công!");
 
+        } catch (IllegalArgumentException e) {
+            result.put("status", "error");
+            result.put("message", "File PDF không hợp lệ: " + e.getMessage());
         } catch (IOException e) {
             result.put("status", "error");
             result.put("message", "Lỗi hệ thống: " + e.getMessage());
@@ -420,34 +410,19 @@ public class MangakaController {
         }
 
         try {
-            String workingDir = System.getProperty("user.dir");
-            String uploadDir = workingDir + File.separator + "src" + File.separator + "main" + File.separator
-                    + "resources" + File.separator + "static" + File.separator + "proposal" + File.separator;
-
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
+            // Lưu file mới trước; chỉ xóa file cũ khi file mới đã ghi thành công
+            // (file mới không hợp lệ thì bản cũ vẫn còn nguyên).
+            String oldPath = proposal.getFilePath();
+            String savedPath = fileStorageService.saveUpload(FileStorageService.DIR_PROPOSAL, proposalId,
+                    fileManuscript, FileStorageService.PDF_EXTENSIONS);
+            if (oldPath != null && !oldPath.equals(savedPath)) {
+                fileStorageService.delete(oldPath);
             }
-
-            // Xóa file cũ
-            if (proposal.getFilePath() != null) {
-                Path oldFile = Paths.get(uploadDir + Paths.get(proposal.getFilePath()).getFileName());
-                Files.deleteIfExists(oldFile);
-            }
-
-            String originalName = fileManuscript.getOriginalFilename();
-            String extension = ".pdf";
-            if (originalName != null && originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf("."));
-            }
-
-            String fileName = proposalId + extension;
-            fileManuscript.transferTo(uploadPath.resolve(fileName).toFile());
 
             proposal.setSeriesName(txtSeriesName.trim());
             proposal.setGenre(genre != null ? genre.trim() : null);
             proposal.setPlannedChapterCount(plannedChapterCount);
-            proposal.setFilePath("/proposal/" + fileName);
+            proposal.setFilePath(savedPath);
             proposal.setStatus("new");
             proposal.setComment(null);
             proposal.setEditorScore(null);
@@ -463,6 +438,9 @@ public class MangakaController {
             result.put("proposalId", proposalId);
             result.put("message", "Đã nộp lại bản thảo thành công!");
 
+        } catch (IllegalArgumentException e) {
+            result.put("status", "error");
+            result.put("message", "File PDF không hợp lệ: " + e.getMessage());
         } catch (IOException e) {
             result.put("status", "error");
             result.put("message", "Lỗi hệ thống: " + e.getMessage());

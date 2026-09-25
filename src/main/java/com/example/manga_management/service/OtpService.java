@@ -9,15 +9,28 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class OtpService {
 
-    private record OtpEntry(String otp, LocalDateTime expiry) {}
+    /** Số lần nhập sai tối đa trước khi OTP bị vô hiệu (chống dò mã 6 số). */
+    static final int MAX_FAILED_ATTEMPTS = 5;
+
+    private static final class OtpEntry {
+        final String otp;
+        final LocalDateTime expiry;
+        int failedAttempts;
+
+        OtpEntry(String otp, LocalDateTime expiry) {
+            this.otp = otp;
+            this.expiry = expiry;
+        }
+    }
 
     private final ConcurrentHashMap<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
     private final SecureRandom random = new SecureRandom();
 
     /**
-     * Generates a 6-digit OTP for the given userId and stores it with a 5-minute expiry.
+     * Generates a 6-digit OTP for the given key and stores it with a 5-minute expiry.
+     * Requesting a new OTP replaces the old one and resets the failed-attempt counter.
      *
-     * @param userId the user's ID used as the key
+     * @param userId the key the OTP is stored under
      * @return the generated OTP string
      */
     public String generateOtp(String userId) {
@@ -28,11 +41,10 @@ public class OtpService {
     }
 
     /**
-     * Verifies the OTP for the given userId.
-     * Removes the entry from the store after a successful match.
+     * Verifies the OTP for the given key.
+     * The entry is removed after a successful match, after expiry, or after
+     * {@link #MAX_FAILED_ATTEMPTS} wrong guesses.
      *
-     * @param userId the user's ID
-     * @param otp    the OTP provided by the user
      * @return true if OTP is correct and not expired, false otherwise
      */
     public boolean verifyOtp(String userId, String otp) {
@@ -40,14 +52,21 @@ public class OtpService {
         if (entry == null) {
             return false;
         }
-        if (LocalDateTime.now().isAfter(entry.expiry())) {
-            otpStore.remove(userId);
-            return false;
+        synchronized (entry) {
+            if (LocalDateTime.now().isAfter(entry.expiry)) {
+                otpStore.remove(userId, entry);
+                return false;
+            }
+            if (otp == null || !java.security.MessageDigest.isEqual(
+                    entry.otp.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    otp.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                if (++entry.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                    otpStore.remove(userId, entry);
+                }
+                return false;
+            }
+            otpStore.remove(userId, entry);
+            return true;
         }
-        if (!entry.otp().equals(otp)) {
-            return false;
-        }
-        otpStore.remove(userId);
-        return true;
     }
 }

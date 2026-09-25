@@ -10,6 +10,7 @@ import com.example.manga_management.repository.SubmissionRepository;
 import com.example.manga_management.repository.TantoEditorRepository;
 import com.example.manga_management.repository.UserRepository;
 import com.example.manga_management.service.EmailService;
+import com.example.manga_management.service.FileStorageService;
 import com.example.manga_management.service.OtpService;
 import com.example.manga_management.service.SmsService;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +53,8 @@ class AccountControllerOtpTests {
                 mock(BoardRepository.class),
                 mock(SeriesRepository.class),
                 mock(SubmissionRepository.class),
-                mock(EditorialVoteRepository.class));
+                mock(EditorialVoteRepository.class),
+                mock(FileStorageService.class));
     }
 
     @Test
