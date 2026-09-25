@@ -1,0 +1,2415 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
+    <script defer src="/js/profile-security.js?v=20260721-profile-compact" th:src="@{/js/profile-security.js(v='20260721-profile-compact')}"></script>
+    <title>Tantou</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../static/css/all.css?v=20260802-home-scroll"
+      th:href="@{/css/all.css(v='20260802-home-scroll')}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../static/css/responsive.css?v=20260721-responsive" th:href="@{/css/responsive.css(v='20260721-responsive')}" />
+  </head>
+
+  <body class="role-workspaces-ready" data-editorial-role="tantou" th:attr="data-user-id=${currentUserId},data-tantou-id=${tantouId}">
+  <!-- Thanh đầu trang: hiển thị thương hiệu và thao tác tài khoản. -->
+    <div class="header">
+      <div class="logo">
+        <div class="brand-stack">
+          <span class="brand-word">SANKYUU</span>
+          <p class="name">Biên tập viên</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn-icon editorial-ai-trigger" id="btnEditorialAi" aria-label="AI Review" title="AI Review">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </button>
+        <div class="u-inline-style-001">
+          <button type="button" class="btn-icon" id="btnNoti" aria-label="Thông báo" title="Thông báo">
+            <i class="fa-solid fa-bell"></i>
+            <span
+              th:if="${unreadCount > 0}"
+              th:text="${unreadCount}"
+              class="badge"
+            ></span>
+          </button>
+
+          <div class="notification-dropdown">
+            <div class="dropdown-header">Thông báo mới</div>
+
+            <div
+              th:each="note : ${myNotifications}"
+              class="notification-item"
+              th:classappend="${!note.isRead} ? ' unread' : ''"
+              th:data-id="${note.id}"
+              th:data-link="${note.link}"
+            >
+              <span th:text="${note.content}"></span>
+              <span
+                class="time"
+                th:text="${#temporals.format(note.createdAt, 'HH:mm dd/MM')}"
+              ></span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(myNotifications)}" class="no-notify">
+              Không có thông báo
+            </div>
+
+          </div>
+        </div>
+
+
+        <a th:href="@{/login/logout}">
+          <button type="button" class="btn-icon" aria-label="Logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </a>
+      </div>
+    </div>
+
+  <!-- Thanh điều hướng: mở các khu vực duyệt và quản lý. -->
+    <ul class="topnav">
+
+
+      <li>
+        <button
+          title="Trang chủ"
+          aria-label="Trang chủ"
+          data-nav-label="Trang chủ"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-home')"
+        >
+          <i class="fa-solid fa-house"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          title="Đề xuất"
+          aria-label="Đề xuất"
+          data-nav-label="Đề xuất"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-proposal')"
+        >
+          <i class="fa-solid fa-file-alt"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          aria-label="Duyệt Chapter"
+          data-nav-label="Duyệt Chapter"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-chapter-review')"
+          title="Duyệt Chapter"
+        >
+          <i class="fa-solid fa-book-open"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          aria-label="Quản lý Mangaka"
+          data-nav-label="Quản lý Mangaka"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-manage-mangaka'); mmLoadMangakas();"
+          title="Quản lý Mangaka"
+        >
+          <i class="fa-solid fa-users"></i>
+        </button>
+      </li>
+      <li class="u-inline-style-001">
+        <button
+          aria-label="Tin nhắn"
+          data-nav-label="Tin nhắn"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-chat')"
+          title="Tin nhắn"
+        >
+          <i class="fa-solid fa-comments"></i>
+        </button>
+        <span id="chatTabBadge" class="badge u-inline-style-002"></span>
+      </li>
+    <li>
+      <button title="Thông tin cá nhân" aria-label="Thông tin cá nhân" type="button" class="btn-icon" data-nav-label="Thông tin cá nhân" onclick="openTab('tab-profile'); loadProfile();">
+        <i class="fa-solid fa-circle-user"></i>
+      </button>
+    </li>    </ul>
+
+  <!-- Nội dung chính: chứa các tab làm việc của biên tập viên. -->
+    <div class="flex-container">
+    <!-- Trang chủ: tổng hợp công việc và các thao tác duyệt nhanh. -->
+      <div
+        id="tab-home"
+        class="tab-pane"
+        th:classappend="${message == null} ? 'active' : ''"
+      >
+        <h2>Trang chủ</h2>
+
+        <div class="section-card">
+          <h3>Series đang chờ hồ sơ bảo vệ</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Series</th>
+                <th>Mangaka</th>
+                <th>Lý do bị vote dừng</th>
+                <th>Ngày nộp bảo vệ</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="pendingCancelTbody">
+              <tr>
+                <td colspan="5" class="u-inline-style-048">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+    <!-- Duyệt bản thảo: xem hồ sơ và cập nhật kết quả duyệt. -->
+      <div id="tab-proposal" class="tab-pane">
+        <h2>Bản thảo chờ xét duyệt</h2>
+        <div id="sub-tab-new" class="sub-tab-pane">
+          <p id="proposalCount">Đang tải...</p>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mã Đề Xuất</th>
+                <th>Tên Tác Giả</th>
+                <th>Tên Series</th>
+                <th>Ngày nộp</th>
+                <th>Tập tin bản thảo</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="proposalTableBody">
+              <tr>
+                <td colspan="6" class="u-inline-style-048">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 class="u-inline-style-137">Đã duyệt — chờ nộp lên hội đồng</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mã Đề Xuất</th>
+                <th>Tên Series</th>
+                <th>Ngày nộp</th>
+                <th>Ngày duyệt</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="approvedTableBody">
+              <tr>
+                <td colspan="5" class="u-inline-style-048">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          id="submitBoardModalOverlay"
+          class="modal-overlay u-inline-style-002"
+        >
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5>Nộp lên hội đồng</h5>
+              <button type="button" onclick="closeSubmitBoardModal()">X</button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="boardProposalId" />
+              <p id="boardSeriesNameLabel"></p>
+              <p>Xác nhận nộp đề xuất này lên hội đồng để biểu quyết. Hội đồng sẽ xem trực tiếp bản thảo do mangaka nộp.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" onclick="closeSubmitBoardModal()">
+                Hủy
+              </button>
+              <button type="button" onclick="submitToBoard()">
+                Nộp lên hội đồng
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="reviewProposalModalOverlay"
+          class="modal-overlay u-inline-style-002"
+        >
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5>Duyệt đề xuất — <span id="reviewModalSeriesName"></span></h5>
+              <button type="button" onclick="closeReviewModal()">X</button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="reviewModalProposalId" />
+
+              <div class="mb-3">
+                <label class="form-label fw-bold form-label-dark"
+                  >Nhận xét:</label
+                >
+                <textarea
+                  id="reviewModalComment"
+                  class="form-control"
+                  rows="4"
+                  placeholder="Nhập nhận xét cho tác giả..."
+                ></textarea>
+              </div>
+
+              <div id="reviewModalActions" class="u-inline-style-138">
+                <button
+                  type="button"
+                  onclick="reviewSubmit('approve')"
+                  class="btn-approve"
+                >
+                  Được duyệt
+                </button>
+                <button
+                  type="button"
+                  onclick="openDeadlinePicker()"
+                  class="btn-approve u-inline-style-139"
+                >
+                  Cần sửa
+                </button>
+                <button
+                  type="button"
+                  onclick="reviewSubmit('reject')"
+                  class="btn-reject"
+                >
+                  Từ chối
+                </button>
+              </div>
+
+            <!-- Bộ chọn hạn sửa: chỉ mở khi yêu cầu chỉnh sửa và đóng bằng nút xác nhận hoặc hủy. -->
+              <div id="deadlinePickerBlock" class="u-inline-style-140">
+                <label class="form-label fw-bold form-label-dark"
+                  >Chọn hạn sửa bài:</label
+                >
+                <input
+                  type="datetime-local"
+                  id="reviewModalDeadline"
+                  class="form-control u-inline-style-042"
+                />
+                <div class="u-inline-style-064">
+                  <button
+                    type="button"
+                    onclick="cancelDeadlinePicker()"
+                    class="btn-reject"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onclick="confirmDeadlinePicker()"
+                    class="btn-approve"
+                  >
+                    Xác nhận
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <!-- Các nghiệp vụ bổ sung của biên tập viên. -->
+      <div id="tab-other" class="tab-pane">
+        <h2>Cài đặt khác</h2>
+        <p>Tính năng đang phát triển...</p>
+      </div>
+
+      <!-- Tab duyệt chapter và xem trước các trang trước khi đưa ra quyết định. -->
+
+      <div id="tab-chapter-review" class="tab-pane">
+        <h2>Duyệt Chapter</h2>
+
+        <p id="chapterReviewCount" class="u-inline-style-141">Đang tải...</p>
+
+        <table class="data-table u-inline-style-002" id="chapterReviewTable">
+          <thead>
+            <tr>
+              <th>Series</th>
+              <th>Chapter</th>
+              <th>Ngày nộp</th>
+              <th>Xem trang</th>
+              <th>Nhận xét</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="chapterReviewBody"></tbody>
+        </table>
+
+        <p id="chapterReviewEmpty" class="u-inline-style-142">
+          Không có chapter nào chờ duyệt.
+        </p>
+
+    <!-- Cửa sổ xem ảnh thu nhỏ của các trang trong chapter. -->
+        <div id="chapterPreviewModal" class="u-inline-style-143">
+          <div class="u-inline-style-144">
+            <div class="u-inline-style-145">
+              <h3 id="previewTitle" class="u-inline-style-146"></h3>
+              <button
+                onclick="closeChapterPreview()"
+                class="btn-action reject u-inline-style-147"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+            <div id="previewPagesGrid" class="u-inline-style-148"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab quản lý Mangaka, series, chapter và trang thuộc phạm vi Tantou phụ trách. -->
+
+      <div id="tab-manage-mangaka" class="tab-pane">
+        <h2>Quản lý Mangaka</h2>
+        <div id="mm-screen-1">
+          <h3>Danh sách Mangaka trực thuộc</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th>Email</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="mm-mangaka-list">
+              <tr>
+                <td colspan="3" class="u-inline-style-048">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="mm-screen-2" class="u-inline-style-002">
+          <button class="btn-action primary" onclick="mmGoToScreen(1)">
+            ⬅ Quay lại
+          </button>
+          <h3 id="mm-s2-title" class="u-inline-style-149">Danh sách Series</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tên Series</th>
+                <th>Trạng thái</th>
+                <th>Ngày bắt đầu</th>
+                <th>Tổng View</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="mm-series-list"></tbody>
+          </table>
+        </div>
+
+        <div id="mm-screen-3" class="u-inline-style-002">
+          <button class="btn-action primary" onclick="mmGoToScreen(2)">
+            ⬅ Quay lại
+          </button>
+          <h3 id="mm-s3-title" class="u-inline-style-149">Danh sách Chapter</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tập</th>
+                <th>Tên</th>
+                <th>Deadline</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="mm-chapter-list"></tbody>
+          </table>
+        </div>
+
+        <div id="mm-screen-4" class="u-inline-style-002">
+          <button class="btn-action primary" onclick="mmGoToScreen(3)">
+            ⬅ Quay lại
+          </button>
+          <h3 id="mm-s4-title" class="u-inline-style-149">Kịch bản & Trang</h3>
+          <div class="u-inline-style-150">
+            <h4>Kịch bản Chapter:</h4>
+            <p id="mm-s4-script" class="u-inline-style-151"></p>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Số trang</th>
+                <th>Loại trang</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="mm-page-list"></tbody>
+          </table>
+        </div>
+
+        <div id="mm-screen-5" class="u-inline-style-002">
+          <button class="btn-action primary" onclick="mmGoToScreen(4)">
+            ⬅ Quay lại
+          </button>
+          <h3 id="mm-s5-title" class="u-inline-style-149">Chi tiết trang</h3>
+          <div class="u-inline-style-152">
+            <div class="u-inline-style-153">
+              <h4>Ảnh Trang</h4>
+              <div id="mm-s5-image" class="u-inline-style-154"></div>
+            </div>
+            <div class="u-inline-style-153">
+              <h4>Kịch bản Trang</h4>
+              <div id="mm-s5-script" class="u-inline-style-155"></div>
+            </div>
+            <div class="u-inline-style-153">
+              <h4>Nhận xét của bạn cho trang này</h4>
+              <textarea id="mm-s5-comment-input" rows="4" maxlength="500"
+                placeholder="Nhập nhận xét cho mangaka về trang này..."></textarea>
+              <button type="button" id="mm-s5-comment-btn" class="btn-action primary" onclick="mmSavePageComment()"
+                style="margin-top:8px;">Lưu nhận xét</button>
+              <span id="mm-s5-comment-status" style="margin-left:8px;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-chat" class="tab-pane" data-workspace-shell="true">
+        <section class="role-workspace-surface" aria-labelledby="tantouChatWorkspaceTitle">
+          <header class="role-workspace-header">
+            <div><h1 id="tantouChatWorkspaceTitle">Tin nhắn</h1></div>
+          </header>
+          <div class="role-workspace-content">
+            <div class="chat-layout">
+          <div class="chat-contact-list" id="chatContactList">
+            <div class="chat-empty">Đang tải danh sách liên hệ...</div>
+          </div>
+          <div class="chat-thread">
+            <div class="chat-thread-header" id="chatThreadHeader">
+              Chọn một liên hệ để bắt đầu trò chuyện
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-bar">
+              <input
+                type="text"
+                id="chatInput"
+                placeholder="Nhập tin nhắn..."
+                disabled
+              />
+              <button type="button" id="chatSendBtn" disabled></button>
+            </div>
+          </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div id="tab-profile" class="tab-pane" data-workspace-shell="true">
+        <section class="role-workspace-surface" aria-labelledby="tantouProfileWorkspaceTitle">
+        <header class="role-workspace-header">
+          <div><h1 id="tantouProfileWorkspaceTitle">Thông tin cá nhân</h1></div>
+        </header>
+        <div class="role-workspace-content">
+        <div class="profile-workspace">
+          <div class="profile-primary-column">
+
+        <!-- Ảnh đại diện: cho phép tải và xem avatar hiện tại. -->
+        <div class="section-card" style="max-width:520px; display:flex; align-items:center; gap:1.5rem; margin-bottom:1rem;">
+          <div style="position:relative; flex-shrink:0;">
+            <img id="profileAvatarImg"
+                 src="/images/default-avatar.svg"
+                 style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border);"
+                 onerror="this.src='/images/default-avatar.svg'" />
+            <label for="avatarFileInput"
+                   style="position:absolute; bottom:0; right:0; background:var(--accent); color:#fff;
+                          border-radius:50%; width:24px; height:24px; display:flex; align-items:center;
+                          justify-content:center; cursor:pointer; font-size:14px;" title="Đổi ảnh">✎</label>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this)" />
+          </div>
+          <div>
+            <div style="font-weight:600; font-size:1rem;" id="profileDisplayName"></div>
+            <div style="font-size:0.8rem; color:var(--text-muted);" id="profileDisplayRole"></div>
+            <div style="font-size:0.8rem; color:var(--text-muted);" id="profileDisplayId"></div>
+          </div>
+        </div>
+
+        <!-- Thông tin tài khoản: chỉnh sửa dữ liệu cá nhân và bảo mật. -->
+        <div class="section-card" style="max-width:520px;">
+
+          <div class="field">
+            <label>Email <span id="profileEmailVerifiedBadge"></span></label>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <input id="profileEmail" disabled style="flex:1;" />
+              <button type="button" class="btn-sm btn-primary" onclick="openChangeEmailModal()">Đổi email</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Username</label>
+            <input id="profileUsername" disabled />
+          </div>
+
+          <div class="field">
+            <label>Họ tên (Nickname)</label>
+            <input id="profileNickname" placeholder="Họ tên hiển thị..." />
+          </div>
+
+          <div class="field">
+            <label>Số điện thoại</label>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <input id="profilePhone" placeholder="Chưa có số điện thoại" disabled style="flex:1;" />
+              <button type="button" class="btn-sm btn-primary" onclick="openChangePhoneModal()">Đổi số</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Link cá nhân (mạng xã hội, portfolio...)</label>
+            <input id="profileSocialLinks" placeholder="https://..." />
+          </div>
+
+          <div class="field">
+            <label>Giới thiệu bản thân</label>
+            <textarea id="profileBio" placeholder="Viết vài dòng về bản thân..."
+                      style="width:100%; min-height:80px; resize:vertical;"></textarea>
+          </div>
+
+          <div class="modal-footer" style="padding:0; margin-top:1rem;">
+            <button type="button" class="btn-sm btn-primary" onclick="saveProfile()">Lưu thông tin</button>
+          </div>
+        </div>
+
+          </div>
+
+        <!-- Thông tin theo vai trò: hiển thị dữ liệu nghiệp vụ liên quan. -->
+        <aside id="profileRoleInfo" class="section-card profile-role-card" style="display:none;">
+          <h3 id="profileRoleInfoTitle" style="margin-bottom:1rem;"></h3>
+          <div id="profileRoleInfoContent"></div>
+        </aside>
+        </div>
+        </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Cửa sổ thông tin series: đặt ngoài tab để luôn phủ toàn màn hình. -->
+    <div id="seriesInfoModalOverlay" class="modal-overlay u-inline-style-002 series-info-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="seriesInfoTitle">Thông tin series</h5>
+          <button type="button" class="modal-close-btn" onclick="closeSeriesInfoModal()" aria-label="Đóng">×</button>
+        </div>
+        <div class="modal-body" id="seriesInfoBody">Đang tải...</div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" onclick="closeSeriesInfoModal()">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cửa sổ nộp hồ sơ bảo vệ series đang chờ hủy. -->
+    <div id="submitDefenseModalOverlay" class="modal-overlay u-inline-style-002">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>Nộp hồ sơ bảo vệ</h5>
+          <button type="button" onclick="closeSubmitDefenseModal()">X</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="defenseSeriesId" />
+          <p id="defenseSeriesNameLabel"></p>
+          <label class="form-label fw-bold form-label-dark">File hồ sơ (.pdf):</label>
+          <input type="file" id="defenseFileInput" class="form-control" accept=".pdf" />
+          <label class="form-label fw-bold form-label-dark" style="margin-top:10px;">Ghi chú:</label>
+          <textarea id="defenseNoteInput" rows="4" maxlength="500" class="form-control"
+            placeholder="Giải trình / kế hoạch cải thiện..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" onclick="closeSubmitDefenseModal()">Hủy</button>
+          <button type="button" onclick="submitDefense()">Nộp hồ sơ</button>
+        </div>
+      </div>
+    </div>
+    <!-- Các cửa sổ nghiệp vụ dùng chung trước phần tập lệnh. -->
+
+    <!-- Các cửa sổ nghiệp vụ của Tantou được đặt trước phần tập lệnh cuối trang. -->
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- Cửa sổ đổi mật khẩu bằng OTP. -->
+    <div id="changePasswordModalOverlay" class="app-floating-modal" style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+      <div class="modal-box" style="width:min(440px,100%); max-height:calc(100dvh - var(--app-header-height,72px) - 2.5rem); overflow:auto;">
+      <!-- Bước 1: chọn kênh và gửi OTP. -->
+        <div id="cpStep1">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Đổi mật khẩu</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <p style="color:var(--app-muted); margin-bottom:1rem;">Mã OTP sẽ được gửi tới email của bạn để xác thực.</p>
+          <div id="cpStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <button type="button" class="btn-primary" style="width:100%;" id="btnSendOtp" onclick="cpSendOtp()">Gửi mã OTP</button>
+        </div>
+      <!-- Bước 2: nhập và xác thực OTP. -->
+        <div id="cpStep2" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Nhập mã OTP</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <p style="color:var(--app-muted); margin-bottom:1rem;">Mã OTP đã được gửi tới email của bạn. Có hiệu lực 5 phút.</p>
+          <input type="text" id="cpOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" style="margin-bottom:0.75rem;" />
+          <div id="cpStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <div style="display:flex; gap:0.75rem;">
+            <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="cpGoStep(1)">Quay lại</button>
+            <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="cpVerifyOtp()">Xác nhận</button>
+          </div>
+        </div>
+      <!-- Bước 3: nhập mật khẩu mới. -->
+        <div id="cpStep3" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Mật khẩu mới</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <input type="password" id="cpNewPassword" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)" style="margin-bottom:0.75rem;" />
+          <input type="password" id="cpConfirmPassword" placeholder="Nhập lại mật khẩu mới" style="margin-bottom:0.75rem;" />
+          <div id="cpStep3Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <button type="button" class="btn-primary" style="width:100%;" onclick="cpChangePassword()">Xác nhận đổi mật khẩu</button>
+        </div>
+      </div>
+    </div>
+
+
+
+  <div id="emailVerifyOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.85); backdrop-filter:blur(14px);">
+    <div class="modal-box" style="width:min(440px,100%); max-height:calc(100dvh - 5rem); overflow:auto;">
+      <div id="evStep1">
+        <h4 style="margin:0 0 1rem;">Xac thuc email</h4>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Tai khoan cua ban duoc gan email: <strong id="evEmailDisplay"></strong><br>
+          Vui long xac thuc de su dung day du tinh nang.
+        </p>
+        <div id="evStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <button type="button" class="btn-primary" style="width:100%;"
+          id="btnSendVerifyOtp" onclick="evSendOtp()">Nhan ma OTP</button>
+      </div>
+      <div id="evStep2" style="display:none;">
+        <h4 style="margin:0 0 1rem;">Nhap ma OTP</h4>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Ma OTP da duoc gui toi email cua ban. Co hieu luc 5 phut.
+        </p>
+        <input type="text" id="evOtpInput" placeholder="Nhap ma 6 so..."
+          maxlength="6" style="margin-bottom:0.75rem;" />
+        <div id="evStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <button type="button" class="btn-modal-confirm" style="width:100%;"
+          onclick="evConfirmOtp()">Xac nhan</button>
+      </div>
+    </div>
+  </div>
+
+    <div id="changeEmailOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+    <div class="modal-box change-email-modal" style="width:min(460px,100%);">
+      <div id="ceStep1">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Đổi email</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangeEmailModal()">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập email mới bạn muốn sử dụng. Mã OTP xác nhận sẽ được gửi về email hiện tại đã xác thực:
+          <strong id="ceCurrentEmailText"></strong>
+        </p>
+        <div class="field">
+          <label>Email mới</label>
+          <input type="email" id="ceNewEmail" placeholder="email@example.com" autocomplete="email" />
+        </div>
+        <div id="ceStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangeEmailModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="ceSendOtp()">Xác nhận</button>
+        </div>
+      </div>
+      <div id="ceStep2" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Xác nhận OTP</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangeEmailModal()">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Mã OTP đã được gửi về email hiện tại của bạn. Nhập mã 6 số để xác nhận đổi sang
+          <strong id="cePendingEmailText"></strong>.
+        </p>
+        <div class="field">
+          <label>Mã OTP</label>
+          <input type="text" id="ceOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <div id="ceStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangeEmailModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="ceConfirmOtp()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="changePhoneOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+    <div class="modal-box" style="width:min(460px,100%);">
+      <div id="cpnStep1">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Đổi số điện thoại</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangePhoneModal()" aria-label="Đóng">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập số điện thoại mới. Mã OTP xác nhận sẽ được gửi về email hiện tại đã xác thực của bạn.
+        </p>
+        <div class="field">
+          <label for="cpnNewPhone">Số điện thoại mới</label>
+          <input type="tel" id="cpnNewPhone" placeholder="Ví dụ: 0912345678" autocomplete="tel" inputmode="tel" />
+        </div>
+        <div id="cpnStep1Error" role="alert" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangePhoneModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" id="cpnSendButton" style="flex:1;" onclick="cpnSendOtp()">Gửi OTP</button>
+        </div>
+      </div>
+      <div id="cpnStep2" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Xác nhận số điện thoại</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangePhoneModal()" aria-label="Đóng">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập mã OTP 6 số để xác nhận đổi sang <strong id="cpnPendingPhoneText"></strong>.
+        </p>
+        <div class="field">
+          <label for="cpnOtpInput">Mã OTP</label>
+          <input type="text" id="cpnOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <div id="cpnStep2Error" role="alert" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangePhoneModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" id="cpnConfirmButton" style="flex:1;" onclick="cpnConfirmOtp()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tập lệnh cuối trang: khởi tạo thư viện và kết nối chức năng với API. -->
+  <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+
+  <script src="/js/chat.js?v=20260721-fixed-chat" th:src="@{/js/chat.js(v='20260721-fixed-chat')}"></script>
+
+  <script>
+/**
+ * API của Tantou:
+ * - /manga/tantou/*: duyệt bản thảo, chapter, bảo vệ và quản lý Mangaka.
+ * - /api/account/*: hồ sơ cá nhân, OTP và bảo mật tài khoản.
+ * - /api/notifications/*: đọc và đồng bộ thông báo.
+ */
+// ===== CHUYỂN TRẠNG THÁI SANG TIẾNG VIỆT =====
+const STATUS_VI_MAP = {
+  unfinish: "Đang thực hiện",
+  unfinished: "Đang thực hiện",
+  finish: "Hoàn thành",
+  finished: "Hoàn thành",
+  done: "Chờ duyệt",
+  intask: "Đang làm",
+  untask: "Chưa có việc",
+  pass: "Đã duyệt",
+  passed: "Đã thông qua",
+  approved: "Đã duyệt",
+  reject: "Từ chối",
+  rejected: "Bị từ chối",
+  revision: "Cần sửa",
+  pending: "Chờ xử lý",
+  pending_cancel: "Chờ duyệt hủy",
+  board_check: "Hội đồng đang xét",
+  started: "Đã khởi động",
+  stopped: "Đã dừng",
+  locked: "Bị khóa",
+  published: "Đang phát hành",
+  completed: "Đã hoàn thành",
+  rewarded: "Đã khen thưởng",
+  active: "Đang mở",
+  closed: "Đã đóng",
+  assigned: "Đã giao",
+  submitted: "Đã nộp",
+  success: "Thành công",
+  error: "Lỗi"
+};
+
+function formatStatusVi(status, fallback = "Chưa xác định") {
+  if (status === null || status === undefined || status === "") return fallback;
+  const key = String(status).trim().toLowerCase();
+  return STATUS_VI_MAP[key] || status;
+}
+
+
+      function openTab(tabId) {
+        document
+          .querySelectorAll(".tab-pane")
+          .forEach((p) => p.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+      }
+
+      const tantouId = "[[${tantouId}]]";
+      let _reviewDeadlinePickerOpen = false;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // ── Notification dropdown ──────────────────────────
+        const btnNoti = document.getElementById("btnNoti");
+        const dropdown = document.querySelector(".notification-dropdown");
+
+        if (btnNoti && dropdown) {
+          btnNoti.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle("show");
+
+            // Bấm chuông là đánh dấu tất cả thông báo đã đọc luôn
+            fetch("/notification/read-all", { method: "POST" })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "success") {
+                  const badge = btnNoti.querySelector(".badge");
+                  if (badge) badge.remove();
+                  document
+                    .querySelectorAll(".notification-item.unread")
+                    .forEach((el) => el.classList.remove("unread"));
+                }
+              });
+          });
+
+          document.addEventListener("click", () => {
+            dropdown.classList.remove("show");
+          });
+        }
+
+        // Đóng cửa sổ nộp lên hội đồng khi người dùng nhấn ra ngoài.
+        const submitBoardOverlay = document.getElementById(
+          "submitBoardModalOverlay",
+        );
+        if (submitBoardOverlay) {
+          submitBoardOverlay.addEventListener("click", function (e) {
+            if (e.target === submitBoardOverlay) closeSubmitBoardModal();
+          });
+        }
+
+        // ── Modal review đề xuất: chặn đóng khi đang mở deadline picker ──
+        const reviewModalOverlay = document.getElementById(
+          "reviewProposalModalOverlay",
+        );
+        if (reviewModalOverlay) {
+          reviewModalOverlay.addEventListener("click", function (e) {
+            if (e.target === reviewModalOverlay) closeReviewModal();
+          });
+        }
+
+        // ── Tải dữ liệu ban đầu ─────────────────────────────
+        loadProposals();
+        loadApprovedProposals();
+        loadChapterReviews();
+      });
+
+      // Xử lý danh sách và thao tác duyệt bản thảo.
+      function loadProposals() {
+        fetch("/manga/tantou/proposals?tantouId=" + tantouId)
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.getElementById("proposalTableBody");
+            const countEl = document.getElementById("proposalCount");
+            if (data.status === "error") {
+              tbody.innerHTML = `<tr><td colspan="6" class="u-inline-style-049">${data.message}</td></tr>`;
+              return;
+            }
+            countEl.textContent = "Tổng số bản thảo chờ duyệt: " + data.total;
+            if (!data.proposals || data.proposals.length === 0) {
+              tbody.innerHTML = `<tr><td colspan="6" class="u-inline-style-019">Không có bản thảo nào chờ duyệt.</td></tr>`;
+              return;
+            }
+            tbody.innerHTML = data.proposals
+              .map(
+                (p) => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.mangaka?.user?.fullname ?? "—"}</td>
+          <td>${p.seriesName}<br /><small>Dự kiến: ${
+            p.plannedChapterCount != null
+              ? p.plannedChapterCount + " chương"
+              : "chưa khai"
+          }</small></td>
+          <td><span class="date-value">${formatAppDateTime(p.submittedAt || p.createdAt)}</span></td>
+          <td>${
+            p.filePath
+              ? `<a href="${p.filePath}" class="btn-link" target="_blank">Xem bản thảo</a>`
+              : "Không có file"
+          }</td>
+          <td>
+            <button type="button" onclick="openReviewModal('${p.id}', '${p.seriesName.replace(/'/g, "\\'")}', ${p.plannedChapterCount ?? "null"})" class="btn-approve">Xem & duyệt
+            </button>
+          </td>
+        </tr>`,
+              )
+              .join("");
+          })
+          .catch(() => {
+            document.getElementById("proposalTableBody").innerHTML =
+              `<tr><td colspan="6" class="u-inline-style-049">Lỗi tải dữ liệu</td></tr>`;
+          });
+      }
+
+      function openReviewModal(proposalId, seriesName, plannedChapterCount) {
+        document.getElementById("reviewModalProposalId").value = proposalId;
+        // Số chương dự kiến hiện ngay cạnh tên series: Tantou phải cân nhắc phạm
+        // vi tác giả cam kết trước khi đẩy hồ sơ lên Hội đồng, vì sau khi duyệt
+        // con số này thành trần cứng của series.
+        document.getElementById("reviewModalSeriesName").textContent =
+          seriesName +
+          (plannedChapterCount != null
+            ? " — dự kiến " + plannedChapterCount + " chương"
+            : " — chưa khai số chương");
+        document.getElementById("reviewModalComment").value = "";
+        document.getElementById("reviewModalDeadline").value = "";
+        document.getElementById("deadlinePickerBlock").style.display = "none";
+        document.getElementById("reviewModalActions").style.display = "flex";
+        _reviewDeadlinePickerOpen = false;
+        document.getElementById("reviewProposalModalOverlay").style.display =
+          "flex";
+      }
+
+      function closeReviewModal() {
+        // Không cho đóng modal khi đang mở khối chọn deadline (phải Xác nhận hoặc Hủy trước)
+        if (_reviewDeadlinePickerOpen) return;
+        document.getElementById("reviewProposalModalOverlay").style.display =
+          "none";
+      }
+
+      function openDeadlinePicker() {
+        document.getElementById("deadlinePickerBlock").style.display = "block";
+        document.getElementById("reviewModalActions").style.display = "none";
+        _reviewDeadlinePickerOpen = true;
+      }
+
+      function cancelDeadlinePicker() {
+        document.getElementById("deadlinePickerBlock").style.display = "none";
+        document.getElementById("reviewModalActions").style.display = "flex";
+        document.getElementById("reviewModalDeadline").value = "";
+        _reviewDeadlinePickerOpen = false;
+      }
+
+      function confirmDeadlinePicker() {
+        const deadline = document.getElementById("reviewModalDeadline").value;
+        if (!deadline) {
+          alert("Vui lòng chọn deadline!");
+          return;
+        }
+        _reviewDeadlinePickerOpen = false;
+        reviewSubmit("revision", deadline);
+      }
+
+      function reviewSubmit(action, deadline) {
+        const id = document.getElementById("reviewModalProposalId").value;
+        const comment = document.getElementById("reviewModalComment").value;
+
+        // Từ chối bắt buộc phải nêu lý do cho mangaka.
+        if (action === "reject" && !comment.trim()) {
+          alert("Vui lòng nhập lý do khi từ chối đề xuất!");
+          document.getElementById("reviewModalComment").focus();
+          return;
+        }
+
+        const params = new URLSearchParams();
+        params.append("id", id);
+        params.append("action", action);
+        if (comment) params.append("comment", comment);
+        if (action === "revision" && deadline)
+          params.append("deadline", deadline);
+
+        fetch("/manga/tantou/review", { method: "POST", body: params })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert("" + data.message);
+              document.getElementById(
+                "reviewProposalModalOverlay",
+              ).style.display = "none";
+              loadProposals();
+              loadApprovedProposals();
+            } else {
+              alert("" + data.message);
+            }
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+
+      // ── Danh sách chờ nộp hội đồng ──────────────────────
+      function loadApprovedProposals() {
+        fetch("/manga/tantou/approved-proposals")
+          .then((res) => res.json())
+          .then((data) => {
+            const tbody = document.getElementById("approvedTableBody");
+            if (
+              data.status === "error" ||
+              !data.proposals ||
+              data.proposals.length === 0
+            ) {
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-019">Chưa có đề xuất nào chờ nộp.</td></tr>`;
+              return;
+            }
+            tbody.innerHTML = data.proposals
+              .map(
+                (p) => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.seriesName}<br /><small>Dự kiến: ${
+            p.plannedChapterCount != null
+              ? p.plannedChapterCount + " chương"
+              : "chưa khai"
+          }</small></td>
+          <td><span class="date-value">${formatAppDateTime(p.submittedAt || p.createdAt)}</span></td>
+          <td><span class="date-value">${formatAppDateTime(p.reviewedAt)}</span></td>
+          <td><button type="button" onclick="openSubmitBoardModal('${p.id}','${p.seriesName}')" class="btn-approve">Nộp lên hội đồng</button></td>
+        </tr>`,
+              )
+              .join("");
+          })
+          .catch(() => {
+            document.getElementById("approvedTableBody").innerHTML =
+              `<tr><td colspan="5" class="u-inline-style-049">Lỗi tải dữ liệu</td></tr>`;
+          });
+      }
+
+      function openSubmitBoardModal(id, seriesName) {
+        document.getElementById("boardProposalId").value = id;
+        document.getElementById("boardSeriesNameLabel").textContent =
+          seriesName + " (" + id + ")";
+        document.getElementById("submitBoardModalOverlay").style.display =
+          "flex";
+      }
+
+      function closeSubmitBoardModal() {
+        document.getElementById("submitBoardModalOverlay").style.display =
+          "none";
+      }
+
+      function submitToBoard() {
+        const proposalId = document.getElementById("boardProposalId").value;
+
+        const formData = new FormData();
+        formData.append("proposalId", proposalId);
+
+        fetch("/manga/tantou/submit-to-board", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert("" + data.message);
+              closeSubmitBoardModal();
+              loadApprovedProposals();
+            } else alert("" + data.message);
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+
+      // Xử lý danh sách và thao tác duyệt chapter.
+      function loadChapterReviews() {
+        fetch("/api/chapter-review/pending")
+          .then((r) => r.json())
+          .then((data) => {
+            const countEl = document.getElementById("chapterReviewCount");
+            const table = document.getElementById("chapterReviewTable");
+            const tbody = document.getElementById("chapterReviewBody");
+            const emptyEl = document.getElementById("chapterReviewEmpty");
+            if (data.status === "error") {
+              countEl.textContent = "" + data.message;
+              return;
+            }
+            countEl.textContent =
+              "Có " + data.total + " chapter đang chờ duyệt.";
+            if (!data.chapters || data.chapters.length === 0) {
+              table.style.display = "none";
+              emptyEl.style.display = "block";
+              return;
+            }
+            table.style.display = "table";
+            emptyEl.style.display = "none";
+            tbody.innerHTML = data.chapters
+              .map(
+                (c) => `
+                    <tr id="cr-row-${c.id}">
+                        <td>${c.series.seriesName}</td>
+                        <td><b>Chapter ${c.chapterNumber}</b><br><small class="u-inline-style-156">${c.chapterName}</small></td>
+                        <td><span class="date-value">${formatAppDateTime(c.submittedAt)}</span></td>
+                        <td>
+                            <button type="button" onclick="openChapterPreview('${c.id}','Chapter ${c.chapterNumber} — ${c.chapterName}')"
+                                class="btn-action primary u-inline-style-134">Xem trang</button>
+                        </td>
+                        <td>
+                            <textarea id="cr-comment-${c.id}" placeholder="Nhận xét / yêu cầu chỉnh sửa — BẮT BUỘC khi Từ chối, tuỳ chọn khi Duyệt..." class="u-inline-style-157"></textarea>
+                        </td>
+                        <td>
+                            <div class="u-inline-style-158">
+                                <button type="button" onclick="reviewChapter('${c.id}','approve')" class="btn-action approve">Duyệt</button>
+                                <button type="button" onclick="reviewChapter('${c.id}','reject')" class="btn-action reject">Từ chối</button>
+                            </div>
+                        </td>
+                    </tr>`,
+              )
+              .join("");
+          })
+          .catch(() => {
+            document.getElementById("chapterReviewCount").textContent =
+              "Lỗi tải dữ liệu";
+          });
+      }
+
+      async function reviewChapter(chapterId, action) {
+        const comment =
+          document.getElementById("cr-comment-" + chapterId)?.value ?? "";
+        // Từ chối chapter bắt buộc phải có nhận xét / yêu cầu chỉnh sửa.
+        if (action === "reject" && !comment.trim()) {
+          alert("Vui lòng nhập nhận xét / yêu cầu chỉnh sửa trước khi từ chối chapter!");
+          document.getElementById("cr-comment-" + chapterId)?.focus();
+          return;
+        }
+        const confirmed = await window.showUiConfirm(
+          "Bạn chắc chắn muốn " + (action === "approve" ? "duyệt" : "từ chối") + " chapter này?",
+          {
+            title: action === "approve" ? "Duyệt chapter" : "Từ chối chapter",
+            okText: action === "approve" ? "Duyệt" : "Từ chối",
+            cancelText: "Hủy",
+          },
+        );
+        if (!confirmed) return;
+        const params = new URLSearchParams();
+        params.append("action", action);
+        if (comment) params.append("comment", comment);
+        fetch("/api/chapter-review/" + chapterId + "/review", {
+          method: "POST",
+          body: params,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert("" + data.message);
+              document.getElementById("cr-row-" + chapterId)?.remove();
+              loadChapterReviews();
+            } else alert("" + data.message);
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+
+      function openChapterPreview(chapterId, title) {
+        document.getElementById("previewTitle").textContent = title;
+        document.getElementById("previewPagesGrid").innerHTML =
+          '<p class="u-inline-style-159">Đang tải...</p>';
+        document.getElementById("chapterPreviewModal").style.display = "flex";
+        fetch("/api/chapters/" + chapterId + "/pages")
+          .then((r) => r.json())
+          .then((data) => {
+            const grid = document.getElementById("previewPagesGrid");
+            if (data.status === "error") {
+              // ← thêm
+              grid.innerHTML =
+                '<p class="u-inline-style-160">' + data.message + "</p>";
+              return;
+            }
+            const pages = data.pages;
+            if (!pages || pages.length === 0) {
+              grid.innerHTML =
+                '<p class="u-inline-style-159">Chưa có trang nào.</p>';
+              return;
+            }
+            grid.innerHTML = pages
+              .map(
+                (p) => `
+    <div class="u-inline-style-161">
+        ${
+          p.filePath
+            ? `<img src="${p.filePath}?t=${Date.now()}"
+                  onclick="openFullImage('${p.filePath}?t=${Date.now()}')" class="u-inline-style-162">`
+            : `<div class="u-inline-style-163">Chưa có ảnh</div>`
+        }
+        <small class="u-inline-style-156">Trang ${p.pageNumber}</small>
+        <div style="margin-top:6px; text-align:left;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted, #888); text-transform:uppercase; margin-bottom:2px;">Kịch bản trang</div>
+          <div style="font-size:12.5px; white-space:pre-wrap; max-height:80px; overflow-y:auto; margin-bottom:6px;">${p.script ? p.script : "(chưa có kịch bản)"}</div>
+          ${
+            p.tantouComment
+              ? `<div style="font-size:11px; font-weight:700; color:var(--text-muted, #888); text-transform:uppercase; margin-bottom:2px;">Nhận xét trước đó của bạn</div>
+                 <div style="font-size:12.5px; white-space:pre-wrap;">${p.tantouComment}</div>`
+              : ""
+          }
+        </div>
+    </div>`,
+              )
+              .join("");
+          })
+          .catch(() => {
+            document.getElementById("previewPagesGrid").innerHTML =
+              '<p class="u-inline-style-160">Lỗi tải trang.</p>';
+          });
+      }
+
+      function closeChapterPreview() {
+        document.getElementById("chapterPreviewModal").style.display = "none";
+      }
+
+      function openFullImage(src) {
+        let overlay = document.getElementById("fullImageOverlay");
+        if (!overlay) {
+          overlay = document.createElement("div");
+          overlay.id = "fullImageOverlay";
+          overlay.style.cssText = `
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.92);z-index:9999;
+      display:flex;align-items:center;justify-content:center;cursor:zoom-out;
+    `;
+          overlay.onclick = () => (overlay.style.display = "none");
+          const img = document.createElement("img");
+          img.id = "fullImageEl";
+          img.style.cssText =
+            "max-width:90%;max-height:90vh;border-radius:4px;box-shadow:0 0 30px #000;";
+          overlay.appendChild(img);
+          document.body.appendChild(overlay);
+        }
+        document.getElementById("fullImageEl").src = src;
+        overlay.style.display = "flex";
+      }
+    </script>
+
+  <script>
+      // API /manga/tantou/manage/*: quản lý Mangaka, series, chapter và trang.
+      // ===== QUẢN LÝ MANGAKA =====
+      let mmCurrentMangakaId = null;
+      let mmCurrentSeriesId = null;
+      let mmCurrentChapterId = null;
+      let mmCurrentPageId = null;
+      let mmPagesCache = {};
+
+      function mmGoToScreen(screenNumber) {
+        for (let i = 1; i <= 5; i++) {
+          document.getElementById("mm-screen-" + i).style.display =
+            i === screenNumber ? "block" : "none";
+        }
+        if (screenNumber === 1) mmLoadMangakas();
+      }
+
+      const chapterStatLabels = {
+        total: "Tổng số chapter",
+        unfinish: "Đang thực hiện",
+        waitingReview: "Chờ BTV duyệt",
+        pass: "Đã duyệt",
+        published: "Đã xuất bản",
+      };
+
+      const voteSessionTypeLabels = {
+        stop: "Vote dừng series",
+        reward: "Vote khen thưởng",
+        defense: "Hồ sơ bảo vệ",
+      };
+
+      function renderSeriesInfoBody(data) {
+        const s = data.series || {};
+        const p = data.proposal || {};
+        const stats = data.chapterStats || {};
+        const sessions = data.voteSessions || [];
+
+        const statRows = Object.keys(chapterStatLabels)
+          .map(
+            (key) =>
+              `<li>${chapterStatLabels[key]}: <b>${stats[key] ?? 0}</b></li>`,
+          )
+          .join("");
+
+        const sessionsHtml = sessions.length
+          ? sessions
+              .map((vs) => {
+                const label = voteSessionTypeLabels[vs.voteType] || vs.voteType;
+                const statusLabel = vs.status === "active" ? "Đang mở" : "Đã đóng";
+                const reasonLine = vs.reason ? `<div>Lý do: ${vs.reason}</div>` : "";
+                const defenseLine = vs.defenseFilePath
+                  ? `<div><a href="${vs.defenseFilePath}" target="_blank">Hồ sơ bảo vệ (PDF)</a></div>`
+                  : "";
+                const defenseNoteLine = vs.defenseNote ? `<div>Ghi chú: ${vs.defenseNote}</div>` : "";
+                const dateLine = `<div class="review-date-line"><span>Ngày mở/nộp: <strong>${formatAppDate(vs.createdAt)}</strong></span><span>Ngày kết thúc: <strong>${formatAppDate(vs.closedAt)}</strong></span></div>`;
+                const votesLine = (vs.votes || []).length
+                  ? `<div class="vote-date-list">${vs.votes.map((vote) => `<span>${vote.boardName}: ${formatVoteChoiceVi(vote.choice)} · ${formatAppDate(vote.votedAt)}</span>`).join("")}</div>`
+                  : `<div class="vote-date-list"><span>Chưa có phiếu bầu.</span></div>`;
+                const resultLine =
+                  vs.status === "closed" && vs.totalBoards != null
+                    ? `<div>Kết quả: ${vs.votedCount}/${vs.totalBoards} đã vote — ${vs.positivePercent}% đồng ý (${vs.passed ? "Đạt" : "Không đạt"})</div>`
+                    : "";
+                return `<div class="series-info-vote-item">
+                  <b>${label}</b> — ${statusLabel}
+                  ${dateLine}${reasonLine}${defenseLine}${defenseNoteLine}${votesLine}${resultLine}
+                </div>`;
+              })
+              .join("")
+          : "<p>Chưa có phiên vote nào.</p>";
+
+        return `
+          <h4>Thông tin chung</h4>
+          <p><strong>Tên series:</strong> ${s.seriesName || "—"}</p>
+          <p><strong>Thể loại:</strong> ${s.genre || "Chưa cập nhật"}</p>
+          <p><strong>Mô tả:</strong> ${s.description || "—"}</p>
+          <p><strong>Trạng thái:</strong> ${formatStatusVi(s.status, "—")}</p>
+          <p><strong>Ngày bắt đầu:</strong> ${s.startDate || "—"}</p>
+          <hr>
+          <h4>Đề xuất gốc (proposal)</h4>
+          <ul>
+            <li>Mã đề xuất: ${p.id || "—"}</li>
+            <li>Ngày nộp: ${formatAppDateTime(p.submittedAt || p.createdAt)}</li>
+            <li>Tantou xử lý: ${formatAppDateTime(p.reviewedAt)}</li>
+            <li>Nộp hội đồng: ${formatAppDateTime(p.boardSubmittedAt)}</li>
+            <li>Hội đồng kết luận: ${formatAppDateTime(p.boardReviewedAt)}</li>
+            <li>Điểm biên tập viên chấm: ${p.editorScore != null ? Number(p.editorScore).toFixed(2) : "Chưa chấm"}</li>
+            <li>Nhận xét: ${p.comment || "Không có"}</li>
+          </ul>
+          <hr>
+          <h4>Số liệu chapter</h4>
+          <ul>${statRows}</ul>
+          <hr>
+          <h4>Thống kê</h4>
+          <p><strong>Tổng lượt xem:</strong> ${data.totalViews ?? 0}</p>
+          <p><strong>Tổng lượt vote:</strong> ${data.totalVotes ?? 0}</p>
+          <p><strong>Lượt thích / không thích:</strong> ${data.totalLikes ?? 0} / ${data.totalDislikes ?? 0}</p>
+          <hr>
+          <h4>Lịch sử vote hội đồng</h4>
+          ${sessionsHtml}
+        `;
+      }
+
+      function openSeriesInfoModal(seriesId) {
+        const overlay = document.getElementById("seriesInfoModalOverlay");
+        const body = document.getElementById("seriesInfoBody");
+        body.innerHTML = window.renderSeriesInfoState("Đang tải thông tin series...");
+        // Đưa overlay ra làm con trực tiếp của body để không bị "nhốt" trong
+        // stacking context của modal phiên vote (nếu không sẽ hiện ra sau).
+        if (overlay.parentElement !== document.body) {
+          document.body.appendChild(overlay);
+        }
+        overlay.style.display = "flex";
+
+        fetch(`/api/series/${seriesId}/info`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status !== "success") {
+              body.innerHTML = window.renderSeriesInfoState(`Không thể tải thông tin: ${data.message}`, "error");
+              return;
+            }
+            document.getElementById("seriesInfoTitle").textContent =
+              "Thông tin series: " + (data.series.seriesName || "");
+            body.innerHTML = window.renderSeriesInfoAccordion(data);
+          })
+          .catch((err) => {
+            body.innerHTML = window.renderSeriesInfoState(`Không thể tải thông tin: ${err.message}`, "error");
+          });
+      }
+
+      function closeSeriesInfoModal() {
+        document.getElementById("seriesInfoModalOverlay").style.display = "none";
+      }
+
+      function mmLoadMangakas() {
+        fetch("/manga/tantou/my-mangakas")
+          .then((r) => r.json())
+          .then((res) => {
+            const tbody = document.getElementById("mm-mangaka-list");
+            if (res.status === "success") {
+              if (res.data.length === 0) {
+                tbody.innerHTML =
+                  '<tr><td colspan="3" class="u-inline-style-019">Chưa có Mangaka nào.</td></tr>';
+              } else {
+                tbody.innerHTML = res.data
+                  .map(
+                    (m) => `
+                  <tr>
+                    <td>${m.name}</td>
+                    <td>${m.email}</td>
+                    <td><button class="btn-action primary" onclick="mmViewSeries('${m.mangakaId}', '${m.name.replace(/'/g, "\\'")}')">Xem Series</button></td>
+                  </tr>
+                `,
+                  )
+                  .join("");
+              }
+            } else {
+              tbody.innerHTML = `<tr><td colspan="3" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+            }
+          })
+          .catch((err) => {
+            document.getElementById("mm-mangaka-list").innerHTML =
+              `<tr><td colspan="3" class="u-inline-style-049">Lỗi tải dữ liệu</td></tr>`;
+          });
+      }
+
+      function mmViewSeries(mangakaId, mangakaName) {
+        mmCurrentMangakaId = mangakaId;
+        document.getElementById("mm-s2-title").textContent =
+          "Danh sách Series của " + mangakaName;
+        document.getElementById("mm-series-list").innerHTML =
+          '<tr><td colspan="5" class="u-inline-style-019">Đang tải...</td></tr>';
+        mmGoToScreen(2);
+
+        fetch("/manga/tantou/mangaka/" + mangakaId + "/series")
+          .then((r) => r.json())
+          .then((res) => {
+            const tbody = document.getElementById("mm-series-list");
+            if (res.status === "success") {
+              if (res.data.length === 0) {
+                tbody.innerHTML =
+                  '<tr><td colspan="5" class="u-inline-style-019">Mangaka này chưa có series nào.</td></tr>';
+              } else {
+                tbody.innerHTML = res.data
+                  .map(
+                    (s) => `
+                  <tr>
+                    <td>${s.seriesName}</td>
+                    <td>${formatStatusVi(s.status)}</td>
+                    <td>${s.startDate || "—"}</td>
+                    <td>${s.viewCount}</td>
+                    <td>
+                      <button class="btn-action primary u-inline-style-049" onclick="mmViewChapters('${s.seriesId}', '${s.seriesName.replace(/'/g, "\\'")}')">Xem Chapter</button>
+                      <button class="project-action-btn series-info-trigger" onclick="openSeriesInfoModal('${s.seriesId}')">Xem thông tin</button>
+                    </td>
+                  </tr>
+                `,
+                  )
+                  .join("");
+              }
+            } else {
+              tbody.innerHTML = `<tr><td colspan="5">Lỗi: ${res.message}</td></tr>`;
+            }
+          });
+      }
+
+      function mmViewChapters(seriesId, seriesName) {
+        mmCurrentSeriesId = seriesId;
+        document.getElementById("mm-s3-title").textContent =
+          "Danh sách Chapter của " + seriesName;
+        document.getElementById("mm-chapter-list").innerHTML =
+          '<tr><td colspan="5" class="u-inline-style-019">Đang tải...</td></tr>';
+        mmGoToScreen(3);
+
+        fetch("/manga/mangaka/myseries/" + seriesId + "/data")
+          .then((r) => r.json())
+          .then((res) => {
+            const tbody = document.getElementById("mm-chapter-list");
+            if (res.status === "success") {
+              if (!res.chapters || res.chapters.length === 0) {
+                tbody.innerHTML =
+                  '<tr><td colspan="5" class="u-inline-style-019">Series này chưa có chapter nào.</td></tr>';
+              } else {
+                tbody.innerHTML = res.chapters
+                  .map((c) => {
+                    // Xử lý dấu nháy đơn và nháy kép an toàn khi chèn kịch bản.
+                    const scriptEscaped = (c.script || "")
+                      .replace(/\\/g, "\\\\")
+                      .replace(/'/g, "\\'")
+                      .replace(/"/g, "&quot;")
+                      .replace(/\n/g, "\\n");
+                    const deadlineCell =
+                      c.status === "unfinish"
+                        ? `<input type="datetime-local" id="mm-deadline-${c.id}" value="${c.deadline ? c.deadline.substring(0, 16) : ""}" />
+                           <button class="btn-action primary" onclick="mmSaveDeadline('${c.id}')">Lưu</button>`
+                        : formatChapterDeadline(c.deadline);
+                    return `
+                  <tr>
+                    <td>${c.chapterNumber}</td>
+                    <td>${c.chapterName}</td>
+                    <td>${deadlineCell}</td>
+                    <td>${formatStatusVi(c.status)}</td>
+                    <td><button class="btn-action primary" onclick="mmViewPages('${c.id}', 'Chapter ${c.chapterNumber}: ${c.chapterName.replace(/'/g, "\\'")}', '${scriptEscaped}')">Xem Trang</button></td>
+                  </tr>
+                  `;
+                  })
+                  .join("");
+              }
+            } else {
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+            }
+          });
+      }
+
+      // ==========================================
+      // Series đang chờ hồ sơ bảo vệ (pending_cancel)
+      // ==========================================
+      function loadPendingCancelSeries() {
+        const tbody = document.getElementById("pendingCancelTbody");
+        if (!tbody) return;
+        fetch("/manga/tantou/pending-cancel-series")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status !== "success") {
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${data.message}</td></tr>`;
+              return;
+            }
+            const list = data.data || [];
+            if (list.length === 0) {
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-048">Không có series nào đang chờ hồ sơ bảo vệ.</td></tr>`;
+              return;
+            }
+            tbody.innerHTML = list
+              .map((s) => {
+                const actionBtn = s.hasActiveDefense
+                  ? `<span class="u-inline-style-048">Đã nộp, chờ hội đồng bỏ phiếu</span>`
+                  : `<button class="btn-action primary" onclick="openSubmitDefenseModal('${s.seriesId}', '${(s.seriesName || "").replace(/'/g, "\\'")}')">Nộp hồ sơ bảo vệ</button>`;
+                return `<tr>
+                  <td>${s.seriesName}</td>
+                  <td>${s.mangakaName || "—"}</td>
+                  <td>${s.reason || "—"}</td>
+                  <td><span class="date-value">${formatAppDate(s.defenseSubmittedAt)}</span></td>
+                  <td>${actionBtn}</td>
+                </tr>`;
+              })
+              .join("");
+          })
+          .catch((err) => {
+            tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${err.message}</td></tr>`;
+          });
+      }
+
+      function openSubmitDefenseModal(seriesId, seriesName) {
+        document.getElementById("defenseSeriesId").value = seriesId;
+        document.getElementById("defenseSeriesNameLabel").textContent = "Series: " + seriesName;
+        document.getElementById("defenseFileInput").value = "";
+        document.getElementById("defenseNoteInput").value = "";
+        document.getElementById("submitDefenseModalOverlay").style.display = "flex";
+      }
+
+      function closeSubmitDefenseModal() {
+        document.getElementById("submitDefenseModalOverlay").style.display = "none";
+      }
+
+      function submitDefense() {
+        const seriesId = document.getElementById("defenseSeriesId").value;
+        const file = document.getElementById("defenseFileInput").files[0];
+        const note = document.getElementById("defenseNoteInput").value.trim();
+        if (!file) {
+          alert("Vui lòng chọn file PDF hồ sơ bảo vệ!");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("fileDefense", file);
+        formData.append("note", note);
+
+        fetch(`/manga/tantou/series/${seriesId}/submit-defense`, {
+          method: "POST",
+          body: formData,
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert(data.message);
+              closeSubmitDefenseModal();
+              loadPendingCancelSeries();
+            } else {
+              alert("Lỗi: " + data.message);
+            }
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+
+      document.addEventListener("DOMContentLoaded", loadPendingCancelSeries);
+
+      function formatChapterDeadline(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        const pad = (n) => n.toString().padStart(2, "0");
+        return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+      }
+
+      function mmSaveDeadline(chapterId) {
+        const input = document.getElementById("mm-deadline-" + chapterId);
+        const value = input ? input.value : "";
+        if (!value) {
+          alert("Vui lòng chọn ngày giờ!");
+          return;
+        }
+        const picked = new Date(value);
+        if (picked <= new Date()) {
+          alert("Deadline phải sau thời điểm hiện tại, không được đặt vào quá khứ!");
+          return;
+        }
+        fetch("/manga/tantou/chapters/" + chapterId + "/deadline", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "deadline=" + encodeURIComponent(value),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert(data.message);
+              mmViewChapters(
+                mmCurrentSeriesId,
+                document
+                  .getElementById("mm-s3-title")
+                  .textContent.replace("Danh sách Chapter của ", ""),
+              );
+            } else {
+              alert("Lỗi: " + data.message);
+            }
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+
+      function mmViewPages(chapterId, chapterTitle, script) {
+        mmCurrentChapterId = chapterId;
+        document.getElementById("mm-s4-title").textContent = chapterTitle;
+        document.getElementById("mm-s4-script").textContent =
+          script || "Không có kịch bản";
+        document.getElementById("mm-page-list").innerHTML =
+          '<tr><td colspan="4" class="u-inline-style-019">Đang tải...</td></tr>';
+        mmGoToScreen(4);
+
+        fetch(
+          "/manga/mangaka/myseries/" +
+            mmCurrentSeriesId +
+            "/" +
+            chapterId +
+            "/data",
+        )
+          .then((r) => r.json())
+          .then((res) => {
+            const tbody = document.getElementById("mm-page-list");
+            if (res.status === "success") {
+              if (!res.pages || res.pages.length === 0) {
+                tbody.innerHTML =
+                  '<tr><td colspan="4" class="u-inline-style-019">Chapter này chưa có trang nào.</td></tr>';
+              } else {
+                const typeMap = {
+                  cover: "Trang bìa",
+                  action: "Trang hành động",
+                  rest: "Trang nghỉ",
+                  info: "Trang thông tin",
+                  end: "Trang cuối",
+                };
+                tbody.innerHTML = res.pages
+                  .map((p) => {
+                    mmPagesCache[p.id] = p;
+                    return `
+                  <tr>
+                    <td>${p.pageNumber}</td>
+                    <td>${typeMap[p.pageType] || p.pageType}</td>
+                    <td>${formatStatusVi(p.status)}</td>
+                    <td><button class="btn-action primary" onclick="mmViewPageDetail('${p.id}')">Xem Chi Tiết</button></td>
+                  </tr>
+                  `;
+                  })
+                  .join("");
+              }
+            } else {
+              tbody.innerHTML = `<tr><td colspan="4" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+            }
+          });
+      }
+
+      function mmViewPageDetail(pageId) {
+        const p = mmPagesCache[pageId] || {};
+        mmCurrentPageId = pageId;
+        document.getElementById("mm-s5-title").textContent = "Chi tiết trang";
+
+        const imgContainer = document.getElementById("mm-s5-image");
+        if (p.filePath) {
+          imgContainer.innerHTML = `<img src="${p.filePath}" onclick="openFullImage('${p.filePath}')" class="u-inline-style-164">`;
+        } else {
+          imgContainer.innerHTML = `<span class="u-inline-style-165">Chưa có ảnh</span>`;
+        }
+
+        document.getElementById("mm-s5-script").textContent =
+          p.script || "Không có kịch bản";
+        const commentInput = document.getElementById("mm-s5-comment-input");
+        const commentBtn = document.getElementById("mm-s5-comment-btn");
+        const statusEl0 = document.getElementById("mm-s5-comment-status");
+        commentInput.value = p.tantouComment || "";
+        const isFinished = p.status === "finish";
+        commentInput.disabled = isFinished;
+        commentBtn.disabled = isFinished;
+        statusEl0.textContent = isFinished ? "Trang đã hoàn thành, không thể thêm nhận xét." : "";
+        mmGoToScreen(5);
+      }
+
+      function mmSavePageComment() {
+        if (!mmCurrentPageId) return;
+        const input = document.getElementById("mm-s5-comment-input");
+        const comment = input.value.trim();
+        const statusEl = document.getElementById("mm-s5-comment-status");
+        if (input.disabled) {
+          return;
+        }
+        if (!comment) {
+          statusEl.textContent = "Vui lòng nhập nhận xét!";
+          return;
+        }
+        statusEl.textContent = "Đang lưu...";
+        fetch("/api/page/" + mmCurrentPageId + "/tantou-comment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            statusEl.textContent = data.status === "success" ? "Đã lưu!" : "Lỗi: " + data.message;
+            if (data.status === "success" && mmPagesCache[mmCurrentPageId]) {
+              mmPagesCache[mmCurrentPageId].tantouComment = comment;
+            }
+          })
+          .catch((err) => {
+            statusEl.textContent = "Lỗi: " + err.message;
+          });
+      }
+    </script>
+
+  <script src="/js/series-info.js?v=20260721" th:src="@{/js/series-info.js(v='20260721')}"></script>
+
+  <script src="/js/ui-alert.js?v=20260721-fullscreen-modal" th:src="@{/js/ui-alert.js(v='20260721-fullscreen-modal')}"></script>
+
+  <script>
+    // API /api/account/change-password/*: gửi OTP và cập nhật mật khẩu.
+    function openChangePasswordModal() {
+      cpGoStep(1);
+      document.getElementById('changePasswordModalOverlay').style.display = 'flex';
+    }
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModalOverlay').style.display = 'none';
+      cpGoStep(1);
+      ['cpOtpInput','cpNewPassword','cpConfirmPassword'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      ['cpStep1Error','cpStep2Error','cpStep3Error'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+    function cpGoStep(step) {
+      ['cpStep1','cpStep2','cpStep3'].forEach((id, i) => {
+        document.getElementById(id).style.display = (i + 1 === step) ? 'block' : 'none';
+      });
+    }
+    async function cpSendOtp() {
+      const btn = document.getElementById('btnSendOtp');
+      const errEl = document.getElementById('cpStep1Error');
+      btn.disabled = true;
+      btn.textContent = 'Đang gửi...';
+      errEl.style.display = 'none';
+      try {
+        const res = await fetch('/api/account/send-otp', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          cpGoStep(2);
+        } else {
+          errEl.textContent = data.message || 'Lỗi gửi OTP';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Gửi mã OTP';
+      }
+    }
+    async function cpVerifyOtp() {
+      const otp = document.getElementById('cpOtpInput').value.trim();
+      const errEl = document.getElementById('cpStep2Error');
+      errEl.style.display = 'none';
+      if (!otp || otp.length !== 6) {
+        errEl.textContent = 'Vui lòng nhập đủ 6 số';
+        errEl.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/account/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ otp })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          cpGoStep(3);
+        } else {
+          errEl.textContent = data.message || 'OTP không đúng';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      }
+    }
+    async function cpChangePassword() {
+      const newPass = document.getElementById('cpNewPassword').value;
+      const confirmPass = document.getElementById('cpConfirmPassword').value;
+      const errEl = document.getElementById('cpStep3Error');
+      errEl.style.display = 'none';
+      if (!newPass || newPass.length < 6) {
+        errEl.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (newPass !== confirmPass) {
+        errEl.textContent = 'Mật khẩu nhập lại không khớp';
+        errEl.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/account/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword: newPass, confirmPassword: confirmPass })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          closeChangePasswordModal();
+          alert('Đổi mật khẩu thành công!');
+        } else {
+          errEl.textContent = data.message || 'Lỗi đổi mật khẩu';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      }
+    }
+    </script>
+
+  <script>
+// API /api/account/profile và /api/account/verify-email/*: kiểm tra, gửi và xác nhận OTP email.
+// ===== CỬA SỔ XÁC THỰC EMAIL =====
+(function() {
+  async function checkEmailVerified() {
+    try {
+      const res = await fetch('/api/account/profile');
+      const data = await res.json();
+      if (data && data.emailVerified === false && data.email) {
+        document.getElementById('evEmailDisplay').textContent = data.email;
+        document.getElementById('emailVerifyOverlay').style.display = 'flex';
+      }
+    } catch(e) {}
+  }
+
+  window.evSendOtp = async function() {
+    const btn = document.getElementById('btnSendVerifyOtp');
+    const errEl = document.getElementById('evStep1Error');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Dang gui...';
+    errEl.style.display = 'none';
+    let reachedServer = false;
+    try {
+      const res = await fetch('/api/account/verify-email', { method: 'POST' });
+      const data = await res.json();
+      reachedServer = true;
+      if (data.status === 'success') {
+        document.getElementById('evStep1').style.display = 'none';
+        document.getElementById('evStep2').style.display = 'block';
+      } else {
+        errEl.textContent = data.message || 'Loi gui OTP';
+        errEl.style.display = 'block';
+      }
+    } catch(e) {
+      errEl.textContent = 'Loi ket noi';
+      errEl.style.display = 'block';
+    } finally {
+      if (reachedServer) {
+        // Da thuc su goi API gui mail (thanh cong hay that bai deu tinh) ->
+        // khoa nut 60s de tranh bam lien tuc lam can quota gui mail hang ngay.
+        let remain = 60;
+        btn.textContent = 'Gui lai sau ' + remain + 's';
+        const timer = setInterval(() => {
+          remain--;
+          if (remain <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = 'Nhan ma OTP';
+          } else {
+            btn.textContent = 'Gui lai sau ' + remain + 's';
+          }
+        }, 1000);
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Nhan ma OTP';
+      }
+    }
+  };
+
+  window.evConfirmOtp = async function() {
+    const otp = document.getElementById('evOtpInput').value.trim();
+    const errEl = document.getElementById('evStep2Error');
+    errEl.style.display = 'none';
+    if (!otp || otp.length !== 6) {
+      errEl.textContent = 'Vui long nhap du 6 so';
+      errEl.style.display = 'block';
+      return;
+    }
+    try {
+      const res = await fetch('/api/account/confirm-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        document.getElementById('emailVerifyOverlay').style.display = 'none';
+      } else {
+        errEl.textContent = data.message || 'OTP khong dung';
+        errEl.style.display = 'block';
+      }
+    } catch(e) {
+      errEl.textContent = 'Loi ket noi';
+      errEl.style.display = 'block';
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', checkEmailVerified);
+})();
+
+// ===== TAB THONG TIN CA NHAN =====
+async function loadProfile() {
+  try {
+    const res = await fetch('/api/account/profile');
+    const data = await res.json();
+    if (!data || data.status !== 'success') return;
+
+    const avatarImg = document.getElementById('profileAvatarImg');
+    if (avatarImg && data.avatar) avatarImg.src = window.withFreshAssetUrl ? window.withFreshAssetUrl(data.avatar) : data.avatar;
+
+    const dn = document.getElementById('profileDisplayName');
+    if (dn) dn.textContent = data.fullname || '';
+    const dr = document.getElementById('profileDisplayRole');
+    if (dr) dr.textContent = (data.role || '').toUpperCase();
+    const di = document.getElementById('profileDisplayId');
+    if (di) di.textContent = 'ID: ' + (data.id || '') + (data.profileId ? '  |  Profile: ' + data.profileId : '');
+
+    document.getElementById('profileEmail').value = data.email || '';
+    document.getElementById('profileUsername').value = data.username || '';
+    document.getElementById('profileNickname').value = data.fullname || '';
+    document.getElementById('profilePhone').value = data.phone || '';
+    document.getElementById('profileSocialLinks').value = data.socialLinks || '';
+    document.getElementById('profileBio').value = data.profile || '';
+
+    const badge = document.getElementById('profileEmailVerifiedBadge');
+    if (badge) {
+      badge.textContent = data.emailVerified ? '✓ Đã xác thực' : '⚠ Chưa xác thực';
+      badge.dataset.state = data.emailVerified ? 'verified' : 'unverified';
+    }
+
+    renderProfileRoleInfo(data);
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  const body = {
+    nickname: document.getElementById('profileNickname').value.trim(),
+    socialLinks: document.getElementById('profileSocialLinks').value.trim(),
+    profile: document.getElementById('profileBio').value.trim()
+  };
+  try {
+    const res = await fetch('/api/account/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      if (typeof showToast === 'function') showToast('Cập nhật thành công', 'success');
+      else alert('Cập nhật thành công!');
+      const dn = document.getElementById('profileDisplayName');
+      if (dn) dn.textContent = body.nickname || dn.textContent;
+    } else {
+      if (typeof showToast === 'function') showToast(data.message, 'error');
+      else alert(data.message);
+    }
+  } catch(e) {
+    alert('Lỗi kết nối');
+  }
+}
+
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/api/account/upload-avatar', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const avatarImg = document.getElementById('profileAvatarImg');
+      if (avatarImg) avatarImg.src = window.withFreshAssetUrl ? window.withFreshAssetUrl(data.avatarUrl) : data.avatarUrl;
+      if (typeof showToast === 'function') showToast('Cập nhật ảnh thành công', 'success');
+    } else {
+      if (typeof showToast === 'function') showToast(data.message, 'error');
+      else alert(data.message);
+    }
+  } catch(e) {
+    alert('Lỗi upload ảnh');
+  }
+}
+
+function renderProfileRoleInfo(data) {
+  const container = document.getElementById('profileRoleInfo');
+  const title = document.getElementById('profileRoleInfoTitle');
+  const content = document.getElementById('profileRoleInfoContent');
+  if (!container || !title || !content) return;
+
+  const role = (data.role || '').toLowerCase();
+  let html = '';
+
+  if (role === 'mangaka') {
+    title.textContent = 'Thông tin Mangaka';
+    
+    html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalSeries || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Series</div>';
+    html += '</div>';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalAssistants || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Trợ lý</div>';
+    html += '</div>';
+    html += '</div>';
+
+    if (data.editor) {
+      html += '<div class="field"><label>Tantou Editor phụ trách</label>';
+      html += '<input value="' + data.editor.editorName + ' (' + data.editor.editorId + ')" disabled /></div>';
+    }
+    html += '<div class="field"><label>Trợ lý (Assistant) thuộc quản lý</label>';
+    if (data.assistants && data.assistants.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Lương/Task</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
+      for (const a of data.assistants) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + a.name + '</td><td style="padding:4px 8px;">' + a.assistantId + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có assistant nào</p>';
+    }
+    html += '</div>';
+    html += '<div class="field" style="margin-top:1rem;"><label>Series đang quản lý</label>';
+    if (data.series && data.series.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên series</th><th style="text-align:left;padding:4px 8px;">Thể loại</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th><th style="text-align:left;padding:4px 8px;">Ngày bắt đầu</th></tr></thead><tbody>';
+      for (const s of data.series) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + s.seriesName + '</td><td style="padding:4px 8px;">' + (s.genre || '—') + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + (s.startDate || '—') + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có series nào</p>';
+    }
+    html += '</div>';
+
+  } else if (role === 'assistant') {
+    title.textContent = 'Thông tin Assistant';
+    
+    if (data.taskStats) {
+      html += '<div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.taskStats.totalTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Tổng số Task</div>';
+      html += '</div>';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#4caf50;">' + (data.taskStats.completedTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Đã hoàn thành</div>';
+      html += '</div>';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#ff9800;">' + (data.taskStats.pendingTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Đang thực hiện</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    if (data.mangaka) {
+      html += '<div class="field"><label>Mangaka quản lý</label>';
+      html += '<input value="' + data.mangaka.mangakaName + ' (' + data.mangaka.mangakaId + ')" disabled /></div>';
+    }
+    html += '<div class="field"><label>Lương mỗi task</label>';
+    html += '<input value="' + (data.salaryPerTask ?? 0).toLocaleString() + ' đ" disabled /></div>';
+    html += '<div class="field"><label>Trạng thái hiện tại</label>';
+    html += '<input value="' + formatStatusVi(data.status, '') + '" disabled /></div>';
+
+    html += '<div class="field" style="margin-top:1rem;"><label>Task được giao gần đây</label>';
+    if (data.recentTasks && data.recentTasks.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Series/Chương/Trang</th><th style="text-align:left;padding:4px 8px;">Deadline</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
+      for (const t of data.recentTasks.slice(0, 5)) {
+        const title = (t.seriesName || '?') + ' - Ch.' + (t.chapterNumber || '?') + ' - Pg.' + (t.pageNumber || '?');
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + title + '</td><td style="padding:4px 8px;">' + t.deadline.replace('T', ' ') + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+      if (data.recentTasks.length > 5) html += '<p style="color:var(--text-muted);font-size:0.8rem;text-align:right;margin-top:0.5rem;">(Và ' + (data.recentTasks.length - 5) + ' task khác)</p>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có task nào</p>';
+    }
+    html += '</div>';
+
+
+  } else if (role === 'tantou') {
+    title.textContent = 'Thông tin Tantou Editor';
+    
+    html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalMangakaManaged || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Mangaka</div>';
+    html += '</div>';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalSeriesManaged || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Series</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="field"><label>Mangaka đang phụ trách</label>';
+    if (data.managedMangaka && data.managedMangaka.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên Mangaka</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Số Series</th></tr></thead><tbody>';
+      for (const m of data.managedMangaka) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + m.mangakaName + '</td><td style="padding:4px 8px;">' + m.mangakaId + '</td><td style="padding:4px 8px;">' + m.seriesCount + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa phụ trách Mangaka nào</p>';
+    }
+    html += '</div>';
+
+  } else if (role === 'board') {
+    title.textContent = 'Thông tin Board Member';
+    
+    if (data.voteStats) {
+      html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.voteStats.totalVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Tổng lượt vote</div>';
+      html += '</div>';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#4caf50;">' + (data.voteStats.approvedVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Chấp thuận</div>';
+      html += '</div>';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#f44336;">' + (data.voteStats.rejectedVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Từ chối</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+  } else if (role === 'admin') {
+    title.textContent = 'Thông tin Quản trị viên';
+  }
+
+  content.innerHTML = html;
+  container.style.display = html || role === 'board' || role === 'admin' ? 'block' : 'none';
+}
+
+// ===== DOI EMAIL =====
+function ceSetError(id, message) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+function ceGetCurrentEmail() {
+  const input = document.getElementById('profileEmail');
+  return input ? input.value.trim() : '';
+}
+
+function openChangeEmailModal() {
+  const currentEmail = ceGetCurrentEmail();
+  const currentEmailText = document.getElementById('ceCurrentEmailText');
+  if (currentEmailText) currentEmailText.textContent = currentEmail || 'email cũ';
+  document.getElementById('ceNewEmail').value = '';
+  document.getElementById('ceOtpInput').value = '';
+  const pendingEmailText = document.getElementById('cePendingEmailText');
+  if (pendingEmailText) pendingEmailText.textContent = '';
+  ceSetError('ceStep1Error', '');
+  ceSetError('ceStep2Error', '');
+  document.getElementById('ceStep1').style.display = 'block';
+  document.getElementById('ceStep2').style.display = 'none';
+  document.getElementById('changeEmailOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('ceNewEmail')?.focus(), 40);
+}
+
+function closeChangeEmailModal() {
+  document.getElementById('changeEmailOverlay').style.display = 'none';
+}
+
+async function ceSendOtp() {
+  const newEmail = document.getElementById('ceNewEmail').value.trim();
+  ceSetError('ceStep1Error', '');
+  if (!newEmail) {
+    ceSetError('ceStep1Error', 'Vui lòng nhập email mới');
+    return;
+  }
+  try {
+    const res = await fetch('/api/account/send-change-email-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const pendingEmailText = document.getElementById('cePendingEmailText');
+      if (pendingEmailText) pendingEmailText.textContent = newEmail;
+      document.getElementById('ceStep1').style.display = 'none';
+      document.getElementById('ceStep2').style.display = 'block';
+      setTimeout(() => document.getElementById('ceOtpInput')?.focus(), 40);
+      if (typeof showToast === 'function') showToast(data.message || 'Đã gửi OTP về email hiện tại', 'success');
+    } else {
+      ceSetError('ceStep1Error', data.message || 'Không thể gửi OTP');
+    }
+  } catch(e) {
+    ceSetError('ceStep1Error', 'Lỗi kết nối');
+  }
+}
+
+async function ceConfirmOtp() {
+  const otp = document.getElementById('ceOtpInput').value.trim();
+  ceSetError('ceStep2Error', '');
+  if (!/^\d{6}$/.test(otp)) {
+    ceSetError('ceStep2Error', 'Vui lòng nhập đúng mã OTP gồm 6 số');
+    return;
+  }
+  try {
+    const res = await fetch('/api/account/confirm-change-email-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      closeChangeEmailModal();
+      if (typeof loadProfile === 'function') loadProfile();
+      if (typeof showToast === 'function') showToast(data.message || 'Đổi email thành công', 'success');
+      else alert(data.message || 'Đổi email thành công!');
+    } else {
+      ceSetError('ceStep2Error', data.message || 'OTP không đúng');
+    }
+  } catch(e) {
+    ceSetError('ceStep2Error', 'Lỗi kết nối');
+  }
+}
+// ===== ĐỔI SỐ ĐIỆN THOẠI BẰNG OTP =====
+function cpnSetError(id, message) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+function cpnSetBusy(id, busy, busyText, idleText) {
+  const button = document.getElementById(id);
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? busyText : idleText;
+}
+
+function openChangePhoneModal() {
+  document.getElementById('cpnNewPhone').value = '';
+  document.getElementById('cpnOtpInput').value = '';
+  document.getElementById('cpnPendingPhoneText').textContent = '';
+  cpnSetError('cpnStep1Error', '');
+  cpnSetError('cpnStep2Error', '');
+  document.getElementById('cpnStep1').style.display = 'block';
+  document.getElementById('cpnStep2').style.display = 'none';
+  document.getElementById('changePhoneOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('cpnNewPhone')?.focus(), 40);
+}
+
+function closeChangePhoneModal() {
+  document.getElementById('changePhoneOverlay').style.display = 'none';
+}
+
+async function cpnSendOtp() {
+  const rawPhone = document.getElementById('cpnNewPhone').value.trim();
+  const newPhone = rawPhone.replace(/[\s().-]/g, '');
+  cpnSetError('cpnStep1Error', '');
+  if (!/^\+?\d{8,15}$/.test(newPhone)) {
+    cpnSetError('cpnStep1Error', 'Số điện thoại phải gồm 8 đến 15 chữ số');
+    return;
+  }
+
+  cpnSetBusy('cpnSendButton', true, 'Đang gửi...', 'Gửi OTP');
+  try {
+    const res = await fetch('/api/account/send-change-phone-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPhone })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      document.getElementById('cpnPendingPhoneText').textContent = newPhone;
+      document.getElementById('cpnStep1').style.display = 'none';
+      document.getElementById('cpnStep2').style.display = 'block';
+      setTimeout(() => document.getElementById('cpnOtpInput')?.focus(), 40);
+      if (typeof showToast === 'function') showToast(data.message || 'Đã gửi OTP', 'success');
+    } else {
+      cpnSetError('cpnStep1Error', data.message || 'Không thể gửi OTP');
+    }
+  } catch (e) {
+    cpnSetError('cpnStep1Error', 'Lỗi kết nối');
+  } finally {
+    cpnSetBusy('cpnSendButton', false, 'Đang gửi...', 'Gửi OTP');
+  }
+}
+
+async function cpnConfirmOtp() {
+  const otp = document.getElementById('cpnOtpInput').value.trim();
+  cpnSetError('cpnStep2Error', '');
+  if (!/^\d{6}$/.test(otp)) {
+    cpnSetError('cpnStep2Error', 'Vui lòng nhập đúng mã OTP gồm 6 số');
+    return;
+  }
+
+  cpnSetBusy('cpnConfirmButton', true, 'Đang xác nhận...', 'Xác nhận');
+  try {
+    const res = await fetch('/api/account/confirm-change-phone-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const phone = document.getElementById('cpnPendingPhoneText').textContent;
+      document.getElementById('profilePhone').value = phone;
+      closeChangePhoneModal();
+      if (typeof showToast === 'function') showToast(data.message || 'Đổi số điện thoại thành công', 'success');
+      else alert(data.message || 'Đổi số điện thoại thành công!');
+    } else {
+      cpnSetError('cpnStep2Error', data.message || 'OTP không đúng');
+    }
+  } catch (e) {
+    cpnSetError('cpnStep2Error', 'Lỗi kết nối');
+  } finally {
+    cpnSetBusy('cpnConfirmButton', false, 'Đang xác nhận...', 'Xác nhận');
+  }
+}
+
+</script>
+
+  <script src="/js/editorial-ai.js" th:src="@{/js/editorial-ai.js}"></script>
+
+  <script src="/js/workspace-density.js?v=20260802-home-scroll" th:src="@{/js/workspace-density.js(v='20260802-home-scroll')}"></script>
+</body>
+</html>

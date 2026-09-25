@@ -1,0 +1,33 @@
+/* Biểu tượng dùng chung: căn chỉnh nút icon và huy hiệu thông báo. */
+.icon-btn,
+.header-icon-btn,
+.notification-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn i,
+.header-icon-btn i,
+.notification-btn i,
+.btn-icon i {
+  pointer-events: none;
+}
+
+.icon-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #08090d;
+  border-radius: 999px;
+  background: #ef3b36;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+}

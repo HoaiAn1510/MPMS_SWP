@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
+    <title>Đăng nhập hệ thống Manga</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../static/css/all.css?v=20260721-forgot-password"
+      th:href="@{/css/all.css(v='20260721-forgot-password')}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../static/css/responsive.css?v=20260721-responsive" th:href="@{/css/responsive.css(v='20260721-responsive')}" />
+  </head>
+  <body class="login-page no-sidebar">
+    <!-- Thanh đầu trang: hiển thị thương hiệu và nút chuyển giao diện. -->
+    <div class="header">
+      <div class="logo">
+        <span class="brand-word">SANKYUU</span>
+      </div>
+    </div>
+
+    <!-- Nội dung đăng nhập: giới thiệu hệ thống và xác thực tài khoản. -->
+    <div class="main-background">
+      <div class="login-hero-copy">
+        <h1 class="main-title">SANKYUU</h1>
+        <h2 class="sub-title">Hệ thống vẽ truyện tranh</h2>
+      </div>
+
+      <form class="login-form" th:action="@{/login}" method="POST">
+        <h1 class="form-group login-form-title">ĐĂNG NHẬP HỆ THỐNG</h1>
+
+        <div class="form-group">
+          <label for="username">Tài khoản:</label>
+          <input type="text" id="username" name="txtUsername" autocomplete="username" required>
+        </div>
+
+        <div th:if="${param.error != null or error != null}" class="errorlogin">
+          <span>Sai thông tin đăng nhập</span>
+        </div>
+
+        <div class="form-group login-password-group">
+          <label for="password">Mật khẩu:</label>
+          <input type="password" id="password" name="txtPassword" autocomplete="current-password" required>
+          <button type="button" class="forgot-password-link" onclick="openForgotPasswordModal()">Quên mật khẩu?</button>
+        </div>
+
+        <button type="submit">Đăng nhập</button>
+      </form>
+    </div>
+
+    <!-- Cửa sổ quên mật khẩu: gửi OTP và đặt lại mật khẩu. -->
+    <div id="forgotPasswordModal" class="app-floating-modal forgot-password-modal" hidden>
+      <div class="modal-box forgot-password-dialog" role="dialog" aria-modal="true" aria-labelledby="forgotPasswordTitle">
+        <div class="modal-header">
+          <div>
+            <h2 id="forgotPasswordTitle">Khôi phục mật khẩu</h2>
+            <p>Nhận OTP qua Email đang liên kết với tài khoản.</p>
+          </div>
+          <button type="button" class="modal-close-btn" onclick="closeForgotPasswordModal()" aria-label="Đóng">&times;</button>
+        </div>
+        <div class="modal-body forgot-password-body">
+          <div class="field">
+            <label for="forgotAccount">Username hoặc Email</label>
+            <div class="forgot-password-send-row">
+              <input id="forgotAccount" autocomplete="username" placeholder="Nhập Username hoặc Email" />
+              <button type="button" id="forgotSendOtpButton" class="btn-primary" onclick="sendForgotPasswordOtp()">Gửi OTP</button>
+            </div>
+          </div>
+          <div id="forgotResetFields" hidden>
+            <div class="field">
+              <label for="forgotOtp">Mã OTP</label>
+              <input id="forgotOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Nhập 6 chữ số" />
+            </div>
+            <div class="field">
+              <label for="forgotNewPassword">Mật khẩu mới</label>
+              <input id="forgotNewPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Tối thiểu 6 ký tự" />
+            </div>
+            <div class="field">
+              <label for="forgotConfirmPassword">Xác nhận mật khẩu mới</label>
+              <input id="forgotConfirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Nhập lại mật khẩu mới" />
+            </div>
+            <button type="button" id="forgotResetButton" class="btn-primary forgot-password-submit" onclick="resetForgottenPassword()">Đặt lại mật khẩu</button>
+          </div>
+          <p id="forgotPasswordStatus" class="forgot-password-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+
+  <!-- Tập lệnh cuối trang: khởi tạo thư viện và kết nối chức năng với API. -->
+  <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+  <script src="/js/ui-alert.js?v=20260721-fullscreen-modal" th:src="@{/js/ui-alert.js(v='20260721-fullscreen-modal')}"></script>
+
+  <script>
+      /**
+       * API khôi phục mật khẩu:
+       * - /login/forgot-password/send-otp: gửi mã OTP.
+       * - /login/forgot-password/reset: xác nhận OTP và đặt mật khẩu mới.
+       */
+      function setForgotPasswordStatus(message, type) {
+        const status = document.getElementById("forgotPasswordStatus");
+        status.textContent = message || "";
+        status.className = `forgot-password-status${type ? ` is-${type}` : ""}`;
+      }
+
+      function openForgotPasswordModal() {
+        const modal = document.getElementById("forgotPasswordModal");
+        const username = document.getElementById("username").value.trim();
+        document.getElementById("forgotAccount").value = username;
+        modal.hidden = false;
+        modal.style.display = "flex";
+        document.documentElement.classList.add("app-modal-open");
+        requestAnimationFrame(() => document.getElementById("forgotAccount").focus());
+      }
+
+      function closeForgotPasswordModal() {
+        const modal = document.getElementById("forgotPasswordModal");
+        modal.style.display = "none";
+        modal.hidden = true;
+        document.documentElement.classList.remove("app-modal-open");
+        document.getElementById("forgotResetFields").hidden = true;
+        ["forgotOtp", "forgotNewPassword", "forgotConfirmPassword"].forEach((id) => {
+          document.getElementById(id).value = "";
+        });
+        setForgotPasswordStatus("");
+      }
+
+      async function forgotPasswordRequest(url, payload) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          throw new Error(
+            response.redirected
+              ? "Phiên yêu cầu không hợp lệ. Vui lòng tải lại trang và thử lại"
+              : "Máy chủ không trả về dữ liệu hợp lệ",
+          );
+        }
+        const data = await response.json();
+        if (!response.ok || data.success === false) throw new Error(data.message || "Không thể xử lý yêu cầu");
+        return data;
+      }
+
+      async function sendForgotPasswordOtp() {
+        const account = document.getElementById("forgotAccount").value.trim();
+        if (!account) {
+          setForgotPasswordStatus("Vui lòng nhập Username hoặc Email", "error");
+          return;
+        }
+        const button = document.getElementById("forgotSendOtpButton");
+        button.disabled = true;
+        button.textContent = "Đang gửi...";
+        setForgotPasswordStatus("");
+        try {
+          const data = await forgotPasswordRequest("/login/forgot-password/send-otp", { account });
+          document.getElementById("forgotResetFields").hidden = false;
+          setForgotPasswordStatus(data.message, "success");
+          document.getElementById("forgotOtp").focus();
+        } catch (error) {
+          setForgotPasswordStatus(error.message, "error");
+        } finally {
+          button.disabled = false;
+          button.textContent = "Gửi lại OTP";
+        }
+      }
+
+      async function resetForgottenPassword() {
+        const button = document.getElementById("forgotResetButton");
+        button.disabled = true;
+        button.textContent = "Đang cập nhật...";
+        setForgotPasswordStatus("");
+        try {
+          const data = await forgotPasswordRequest("/login/forgot-password/reset", {
+            otp: document.getElementById("forgotOtp").value.trim(),
+            newPassword: document.getElementById("forgotNewPassword").value,
+            confirmPassword: document.getElementById("forgotConfirmPassword").value,
+          });
+          setForgotPasswordStatus(data.message, "success");
+          setTimeout(closeForgotPasswordModal, 1100);
+        } catch (error) {
+          setForgotPasswordStatus(error.message, "error");
+        } finally {
+          button.disabled = false;
+          button.textContent = "Đặt lại mật khẩu";
+        }
+      }
+
+      document.getElementById("forgotPasswordModal").addEventListener("click", (event) => {
+        if (event.target === event.currentTarget) closeForgotPasswordModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !document.getElementById("forgotPasswordModal").hidden) {
+          closeForgotPasswordModal();
+        }
+      });
+    </script>
+</body>
+</html>

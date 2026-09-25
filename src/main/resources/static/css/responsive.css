@@ -1,0 +1,665 @@
+/* Responsive toàn dự án -----------------------------------------------------
+   Giữ đầy đủ chức năng trên PC, laptop, tablet và điện thoại.
+   Trang ngoài không cuộn; các workspace, bảng, chat và popup tự quản lý cuộn. */
+
+:root {
+  --app-bottom-nav-height: 72px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+.flex-container,
+.tab-pane,
+.role-workspace-surface,
+.role-workspace-content,
+.role-workspace-native-surface,
+.section-card,
+.card,
+.box,
+.modal-content,
+.modal-box {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+td,
+th,
+p,
+label,
+.chat-bubble,
+.notification-item,
+.profile-account-value {
+  overflow-wrap: anywhere;
+}
+
+/* Laptop và tablet ngang: giảm sidebar nhưng vẫn giữ bố cục nhiều cột. */
+@media (min-width: 901px) and (max-width: 1279px) {
+  :root {
+    --app-header-height: 68px;
+    --app-sidebar-width: 78px;
+    --app-sidebar-expanded-width: 220px;
+  }
+
+  .header {
+    padding: 0.65rem 1rem;
+  }
+
+  .topnav {
+    gap: 0.45rem;
+    padding: 0.7rem 0.65rem;
+  }
+
+  .topnav .btn-icon {
+    min-height: 48px;
+    height: 48px;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .role-workspace-header {
+    min-height: 78px;
+    padding: 0.85rem 1.1rem;
+  }
+
+  .role-workspace-content > .profile-workspace {
+    grid-template-columns: minmax(330px, 0.9fr) minmax(420px, 1.1fr);
+  }
+}
+
+/* Thiết bị cảm ứng: mọi thao tác chính đạt vùng chạm tối thiểu 44px. */
+@media (pointer: coarse) {
+  button,
+  .btn,
+  .btn-sm,
+  .btn-action,
+  .page-action-btn,
+  input,
+  select {
+    min-height: 44px;
+  }
+
+  .topnav .btn-icon,
+  .header-actions .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  button:hover,
+  .btn:hover,
+  .btn-sm:hover,
+  .btn-action:hover {
+    transform: none;
+  }
+}
+
+/* Tablet dọc và màn hình hẹp: sidebar chuyển thành thanh điều hướng dưới. */
+@media (max-width: 900px) {
+  :root {
+    --app-header-height: 64px;
+    --app-sidebar-width: 0px;
+    --app-sidebar-expanded-width: 0px;
+    --app-bottom-nav-height: 70px;
+  }
+
+  .header {
+    height: var(--app-header-height);
+    padding: 0.55rem max(0.75rem, env(safe-area-inset-right)) 0.55rem
+      max(0.75rem, env(safe-area-inset-left));
+  }
+
+  .logo {
+    min-width: 0;
+    gap: 0.65rem;
+  }
+
+  .logo::before {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  body:not(.login-page) .header .logo .brand-word {
+    font-size: 0.92rem;
+  }
+
+  body:not(.login-page) .header .logo .name {
+    display: block;
+    max-width: 24ch;
+    font-size: 0.68rem;
+  }
+
+  .header-actions {
+    flex: 0 0 auto;
+    gap: 0.4rem;
+  }
+
+  .header-actions .btn-icon,
+  .theme-toggle {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .header-actions .badge,
+  .header-actions .btn-icon .badge {
+    display: inline-flex !important;
+  }
+
+  .topnav,
+  .topnav:hover,
+  .topnav:has(.btn-icon:focus-visible) {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    height: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom));
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-top: 1px solid var(--app-border);
+    border-right: 0;
+    padding: 0.55rem max(0.55rem, env(safe-area-inset-right))
+      max(0.55rem, env(safe-area-inset-bottom))
+      max(0.55rem, env(safe-area-inset-left));
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+
+  .topnav li {
+    width: 56px;
+    min-width: 56px;
+    flex: 0 0 56px;
+    scroll-snap-align: center;
+  }
+
+  .topnav .btn-icon,
+  .topnav:hover .btn-icon,
+  .topnav:has(.btn-icon:focus-visible) .btn-icon {
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .flex-container,
+  body.role-workspaces-ready:not(.login-page):has(.topnav:hover) .flex-container,
+  body.role-workspaces-ready:not(.login-page):has(.topnav .btn-icon:focus-visible) .flex-container,
+  body.chapter-workspace-active .flex-container,
+  body.proposal-workspace-active .flex-container,
+  body.project-workspace-active .flex-container,
+  body.draw-workspace-active .flex-container {
+    top: var(--app-header-height) !important;
+    right: 0 !important;
+    bottom: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom)) !important;
+    left: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .role-workspace-header,
+  .proposal-workspace-header,
+  .project-series-header,
+  .home-report-hub.role-workspace-native-surface {
+    min-height: 68px;
+    padding: 0.75rem 1rem;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .role-workspace-header h1,
+  .proposal-workspace-header h1,
+  .project-series-header h1,
+  .home-report-heading h2 {
+    font-size: 1.2rem;
+  }
+
+  .workspace-quick-actions,
+  .proposal-tabs-nav,
+  .approved-proposal-tabs,
+  [role="tablist"] {
+    max-width: 100%;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+  }
+
+  .workspace-quick-actions > button,
+  .proposal-tabs-nav > button,
+  .approved-proposal-tabs > button,
+  [role="tablist"] > button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .section-card:has(> table),
+  .card:has(> table),
+  .box:has(> table),
+  .table-container,
+  .table-responsive,
+  .proposal-table-stage,
+  .project-series-table-scroll,
+  .chapter-table-scroll {
+    overflow: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  .data-table,
+  .project-series-table,
+  .chapter-compact-table {
+    min-width: 680px;
+  }
+
+  .modal-overlay,
+  .ai-modal-overlay,
+  .app-viewport-modal,
+  .app-floating-modal,
+  .frame-dialog-overlay,
+  .ui-alert-overlay,
+  .ui-confirm-overlay {
+    padding: max(0.65rem, env(safe-area-inset-top))
+      max(0.65rem, env(safe-area-inset-right))
+      max(0.65rem, env(safe-area-inset-bottom))
+      max(0.65rem, env(safe-area-inset-left)) !important;
+  }
+
+  .modal-content,
+  .modal-box,
+  .ranking-modal-content,
+  .workflow-modal-content,
+  .income-statistics-modal-content,
+  .frame-dialog {
+    max-width: calc(100vw - 1.3rem) !important;
+    max-height: calc(100dvh - 1.3rem) !important;
+  }
+
+  .modal-body,
+  .ranking-modal-body,
+  .workflow-modal-body {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .chapter-management-split,
+  .chapter-management-split.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(220px, 42%) minmax(260px, 58%);
+  }
+
+  .chapter-list-pane,
+  .chapter-pages-pane {
+    min-height: 0;
+  }
+}
+
+/* Điện thoại: ưu tiên một cột, nút chạm rõ và cuộn nội bộ. */
+@media (max-width: 640px) {
+  :root {
+    --app-header-height: 60px;
+    --app-bottom-nav-height: 66px;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .header {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+
+  .logo::before {
+    width: 34px;
+    height: 34px;
+  }
+
+  body:not(.login-page) .header .logo .brand-word {
+    font-size: 0.82rem;
+  }
+
+  body:not(.login-page) .header .logo .name {
+    max-width: 18ch;
+    font-size: 0.62rem;
+    line-height: 1.15;
+  }
+
+  .header-actions .btn-icon,
+  .theme-toggle {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+  }
+
+  .topnav li {
+    width: 52px;
+    min-width: 52px;
+    flex-basis: 52px;
+  }
+
+  .topnav .btn-icon,
+  .topnav:hover .btn-icon,
+  .topnav:has(.btn-icon:focus-visible) .btn-icon {
+    height: 46px;
+    min-height: 46px;
+    border-radius: 12px;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .role-workspace-header,
+  .proposal-workspace-header,
+  .project-series-header,
+  .home-report-hub.role-workspace-native-surface {
+    min-height: 60px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  body.role-workspaces-ready:not(.login-page) .role-workspace-header h1,
+  .proposal-workspace-header h1,
+  .project-series-header h1,
+  .home-report-heading h2 {
+    font-size: 1.08rem;
+  }
+
+  .role-workspace-header p,
+  .proposal-workspace-header p,
+  .project-series-header p,
+  .home-report-heading p {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .home-report-hub.role-workspace-native-surface {
+    height: auto;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.65rem;
+    overflow: auto !important;
+  }
+
+  .home-report-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .home-report-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.82rem;
+    white-space: normal;
+  }
+
+  .form-inline,
+  .form-row,
+  .filter-row,
+  .modal-form-row,
+  .editorial-ai-context,
+  .editorial-ai-actions {
+    display: flex !important;
+    width: 100%;
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .form-inline > *,
+  .form-row > *,
+  .filter-row > * {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .form-inline button,
+  .form-row button,
+  .filter-row button {
+    width: 100%;
+  }
+
+  #tab-accounts .account-management-controls {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  #tab-accounts .account-management-controls .field {
+    width: 100%;
+  }
+
+  #tab-accounts .account-create-button {
+    width: auto;
+  }
+
+  .role-workspace-content > :is(.chat-layout, .chat-shell),
+  body.role-workspaces-ready:not(.login-page)
+    #tab-chat
+    .role-workspace-content
+    > :is(.chat-layout, .chat-shell) {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .chat-contact-list,
+  #chatContactList {
+    padding: 0.35rem !important;
+  }
+
+  .chat-contact-item {
+    padding: 0.6rem 0.45rem;
+  }
+
+  .chat-thread-header,
+  #chatThreadHeader {
+    min-height: 48px !important;
+    padding-inline: 0.7rem !important;
+    font-size: 0.85rem;
+  }
+
+  .chat-input-bar,
+  .chat-compose,
+  .chat-input-row {
+    gap: 0.35rem;
+    padding: 0.5rem !important;
+  }
+
+  .chat-input-bar button,
+  .chat-compose button,
+  .chat-input-row button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+
+  .role-workspace-content > .profile-workspace {
+    display: block;
+    overflow: auto;
+  }
+
+  .profile-account-row,
+  .profile-account-control,
+  .profile-nickname-edit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .profile-account-control > *,
+  .profile-nickname-edit > * {
+    width: 100% !important;
+  }
+
+  .ranking-filter-bar,
+  .income-report,
+  .income-reference-row,
+  .series-info-grid,
+  .add-page-type-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .income-reference-row > div + div {
+    border-top: 1px solid var(--app-border);
+    border-left: 0;
+  }
+
+  .modal-header,
+  .ranking-modal-header,
+  .workflow-modal-header {
+    padding: 0.8rem;
+  }
+
+  .modal-body,
+  .ranking-modal-body,
+  .workflow-modal-body {
+    padding: 0.8rem;
+  }
+
+  .modal-footer,
+  .modal-actions {
+    flex-wrap: wrap;
+    padding: 0.8rem;
+  }
+
+  .modal-footer > button,
+  .modal-actions > button {
+    flex: 1 1 130px;
+  }
+
+  #tab-draw .draw-wrapper {
+    width: 100%;
+    min-width: 0;
+    padding: 0.4rem;
+    gap: 0.45rem;
+  }
+
+  #tab-draw .top-property-bar,
+  #tab-draw .palette-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  #tab-draw .canvas-viewport {
+    min-width: 0;
+    overflow: auto;
+  }
+}
+
+/* Điện thoại rất nhỏ: giữ thương hiệu và thao tác header không chồng nhau. */
+@media (max-width: 380px) {
+  .logo {
+    gap: 0.45rem;
+  }
+
+  .logo::before {
+    width: 30px;
+    height: 30px;
+  }
+
+  body:not(.login-page) .header .logo .name {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 0.25rem;
+  }
+
+  .header-actions .btn-icon,
+  .theme-toggle {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .home-report-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #tab-accounts .account-management-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #tab-accounts .account-create-button {
+    width: 100%;
+  }
+}
+
+/* Login thích ứng độc lập vì không có sidebar. */
+@media (max-width: 900px) {
+  body.login-page .main-background {
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 1rem;
+    padding: calc(var(--app-header-height) + 1rem) max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    overflow: auto;
+  }
+
+  body.login-page .login-hero-copy {
+    display: none;
+  }
+
+  body.login-page .login-form {
+    width: min(520px, 100%);
+    margin: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  body.login-page .login-form {
+    padding: 1rem;
+  }
+
+  body.login-page .login-form h1.form-group {
+    font-size: 1.4rem;
+    white-space: normal;
+  }
+}
+
+/* Màn hình độ phân giải lớn: tăng nhẹ mật độ để nội dung không quá nhỏ. */
+@media (min-width: 1920px) {
+  html {
+    font-size: 17px;
+  }
+
+  :root {
+    --app-header-height: 78px;
+    --app-sidebar-width: 100px;
+    --app-sidebar-expanded-width: 250px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,2424 @@
+<!doctype html>
+<html lang="vi" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
+    <script defer src="/js/profile-security.js?v=20260721-profile-compact" th:src="@{/js/profile-security.js(v='20260721-profile-compact')}"></script>
+    <title>Trợ lý</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../static/css/all.css?v=20260802-home-scroll"
+      th:href="@{/css/all.css(v='20260802-home-scroll')}"
+    />
+    <link
+      rel="stylesheet"
+      href="../static/css/draw.css"
+      th:href="@{/css/draw.css}"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../static/css/responsive.css?v=20260721-responsive" th:href="@{/css/responsive.css(v='20260721-responsive')}" />
+  </head>
+
+  <body class="role-workspaces-ready" th:attr="data-user-id=${currentUserId}">
+  <!-- Thanh đầu trang: hiển thị thương hiệu và thao tác tài khoản. -->
+  <div class="header">
+      <div class="logo">
+        <div class="brand-stack">
+          <span class="brand-word">SANKYUU</span>
+          <p class="name">Trợ lý</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="u-inline-style-001">
+          <button type="button" class="btn-icon" id="btnNoti" aria-label="Thông báo" title="Thông báo">
+            <i class="fa-solid fa-bell"></i>
+            <span
+              th:if="${unreadCount > 0}"
+              th:text="${unreadCount}"
+              class="badge"
+            ></span>
+          </button>
+
+          <div class="notification-dropdown">
+            <div class="dropdown-header">Thông báo mới</div>
+
+            <div
+              th:each="note : ${myNotifications}"
+              class="notification-item"
+              th:classappend="${!note.isRead} ? ' unread' : ''"
+              th:data-id="${note.id}"
+              th:data-link="${note.link}"
+            >
+              <span th:text="${note.content}"></span>
+              <span
+                class="time"
+                th:text="${#temporals.format(note.createdAt, 'HH:mm dd/MM')}"
+              ></span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(myNotifications)}" class="no-notify">
+              Không có thông báo
+            </div>
+
+          </div>
+        </div>
+
+
+        <a th:href="@{/login/logout}">
+          <button type="button" class="btn-icon" aria-label="Logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </a>
+      </div>
+    </div>
+
+  <!-- Thanh điều hướng: mở các khu vực làm việc của trợ lý. -->
+  <ul class="topnav">
+      <li>
+        <button
+          title="Trang chủ"
+          aria-label="Trang chủ"
+          data-nav-label="Trang chủ"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-home')"
+        >
+          <i class="fa-solid fa-house"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          title="Bảng vẽ"
+          aria-label="Bảng vẽ"
+          data-nav-label="Bảng vẽ"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-draw')"
+        >
+          <i class="fa-solid fa-brush"></i>
+        </button>
+      </li>
+      <li>
+        <button
+          title="Dự án"
+          aria-label="Dự án"
+          data-nav-label="Dự án"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-project')"
+        >
+          <i class="fa-solid fa-folder-open"></i>
+        </button>
+      </li>
+      <li class="u-inline-style-001">
+        <button
+          aria-label="Tin nhắn"
+          data-nav-label="Tin nhắn"
+          type="button"
+          class="btn-icon"
+          onclick="openTab('tab-chat')"
+          title="Tin nhắn"
+        >
+          <i class="fa-solid fa-comments"></i>
+        </button>
+        <span id="chatTabBadge" class="badge u-inline-style-002"></span>
+      </li>
+    <li>
+      <button title="Thông tin cá nhân" aria-label="Thông tin cá nhân" type="button" class="btn-icon" data-nav-label="Thông tin cá nhân" onclick="openTab('tab-profile'); loadProfile();">
+        <i class="fa-solid fa-circle-user"></i>
+      </button>
+    </li>    </ul>
+
+    <div class="flex-container">
+      <div id="tab-home" class="tab-pane">
+        <h2>Tổng quan</h2>
+
+        <div class="u-inline-style-029">
+          <div class="u-inline-style-030">
+            <h3 th:text="${todo != null ? #lists.size(todo) : 0}"></h3>
+            <p>Đang làm</p>
+          </div>
+
+          <div class="u-inline-style-030">
+            <h3 th:text="${waiting != null ? #lists.size(waiting) : 0}"></h3>
+            <p>Chờ duyệt</p>
+          </div>
+
+          <div class="u-inline-style-030">
+            <h3 th:text="${done != null ? #lists.size(done) : 0}"></h3>
+            <p>Tổng đã hoàn thành</p>
+          </div>
+
+          <div class="u-inline-style-030">
+            <h3 th:text="${completedThisMonth != null ? completedThisMonth : 0}"></h3>
+            <p th:text="${currentMonthLabel != null ? currentMonthLabel : 'Hoàn thành tháng này'}">Hoàn thành tháng này</p>
+          </div>
+
+          <div class="u-inline-style-030">
+            <h3 th:text="|${monthlySalary != null ? #numbers.formatInteger(monthlySalary, 0, 'COMMA') : 0} VNĐ|"></h3>
+            <p>
+              Lương tháng này
+              <small
+                th:if="${salaryPerTask != null}"
+                th:text="|(${#numbers.formatInteger(salaryPerTask, 0, 'COMMA')} VNĐ/task)|"
+              ></small>
+            </p>
+          </div>
+        </div>
+      </div>
+
+    <!-- Không gian vẽ: chứa canvas và các công cụ chỉnh sửa bản vẽ. -->
+      <div id="tab-draw" class="tab-pane">
+      <!-- Công cụ vẽ: điều khiển nét, màu, vùng chọn và layer. -->
+      <!-- draw-wrapper--assistant: trang trợ lý không có panel "Trang" (pages) nên
+           dùng biến thể lưới riêng, KHÔNG ảnh hưởng trang vẽ tác giả. -->
+        <div class="draw-wrapper draw-wrapper--assistant">
+        <!-- Thanh công cụ bên trái: chọn công cụ đang sử dụng. -->
+          <div class="left-toolbar">
+            <button
+              type="button"
+              class="lt-btn active"
+              data-tool="pencil"
+              title="Bút vẽ (B)"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="brush"
+              title="Cọ mềm (cạnh mờ)"
+            >
+              <i class="fa-solid fa-paintbrush"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="eraser"
+              title="Tẩy (E)"
+            >
+              <i class="fa-solid fa-eraser"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="bucket"
+              title="Đổ màu (Bucket fill)"
+            >
+              <i class="fa-solid fa-fill-drip"></i>
+            </button>
+
+            <div class="lt-divider"></div>
+
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="line"
+              title="Đường thẳng"
+            >
+              <i class="fa-solid fa-minus"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="rect"
+              title="Hình chữ nhật"
+            >
+              <i class="fa-solid fa-square"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="oval"
+              title="Hình tròn / Oval (balloon)"
+            >
+              <i class="fa-solid fa-circle"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="text"
+              title="Chèn chữ (Lettering)"
+            >
+              <i class="fa-solid fa-font"></i>
+            </button>
+
+            <div class="lt-divider"></div>
+
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="select"
+              title="Chọn vùng chữ nhật (M)"
+            >
+              <i class="fa-solid fa-vector-square"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="select-oval"
+              title="Chọn vùng oval"
+            >
+              <i class="fa-solid fa-circle-dot"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              data-tool="select-free"
+              title="Chọn vùng tự do (Lasso)"
+            >
+              <i class="fa-solid fa-crop-simple"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              id="toolEyedrop"
+              title="Lấy màu từ canvas"
+            >
+              <i class="fa-solid fa-eye-dropper"></i>
+            </button>
+
+            <div class="lt-divider"></div>
+
+            <button
+              type="button"
+              class="lt-btn"
+              id="toolUndo"
+              title="Hoàn tác (Ctrl+Z)"
+            >
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button
+              type="button"
+              class="lt-btn"
+              id="toolClear"
+              title="Xóa toàn bộ layer hiện tại"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
+
+            <div class="lt-divider"></div>
+
+            <div class="lt-swatch-wrap">
+              <input
+                type="color"
+                class="lt-color-fg"
+                id="penColor"
+                value="#1a1a1a"
+                title="Màu nét vẽ"
+              />
+              <div class="lt-color-bg"></div>
+            </div>
+          </div>
+
+        <!-- Khu vực trung tâm: thiết lập công cụ và thao tác trên canvas. -->
+          <div class="center-area">
+            <div class="top-property-bar" id="topPropertyBar">
+              <div class="prop-group">
+                <span class="prop-label">Cỡ nét</span>
+                <input type="range" id="penSize" min="1" max="60" value="6" />
+                <input type="number" class="prop-number" id="penSizeValue" min="1" max="60" value="6"
+                  aria-label="Nhập cỡ nét" />
+              </div>
+              <div class="prop-divider"></div>
+
+              <div class="prop-group">
+                <span class="prop-label">Độ mờ</span>
+                <input
+                  type="range"
+                  id="penOpacity"
+                  min="10"
+                  max="100"
+                  value="100"
+                />
+                <span class="prop-number-wrap">
+                  <input type="number" class="prop-number" id="penOpacityValue" min="10" max="100" value="100"
+                    aria-label="Nhập độ mờ" />
+                  <span class="prop-unit">%</span>
+                </span>
+              </div>
+              <div class="prop-divider"></div>
+
+              <div class="prop-group u-inline-style-002" id="shapeFillGroup">
+                <span class="prop-label">Kiểu</span>
+                <div class="shape-fill-toggle">
+                  <button
+                    type="button"
+                    class="shape-fill-btn active"
+                    data-fillmode="outline"
+                  >
+                    Viền
+                  </button>
+                  <button
+                    type="button"
+                    class="shape-fill-btn"
+                    data-fillmode="filled"
+                  >
+                    Tô đầy
+                  </button>
+                </div>
+              </div>
+
+              <div class="prop-group u-inline-style-002" id="textSizeGroup">
+                <span class="prop-label">Cỡ chữ</span>
+                <input
+                  type="range"
+                  id="textSize"
+                  min="10"
+                  max="72"
+                  value="24"
+                />
+                <input type="number" class="prop-number" id="textSizeValue" min="10" max="72" value="24"
+                  aria-label="Nhập cỡ chữ" />
+              </div>
+
+              <button
+                id="btnSubmitSubmission"
+                th:if="${submission != null}"
+                th:data-submission-id="${submission.id}"
+                th:data-who="assistant"
+                th:data-saved-path="${submission.filePath != null ? submission.filePath : submission.assignedFilePath}"
+                type="button"
+                class="btn-ai-support-top approve"
+              >
+                Lưu
+              </button>
+
+              <button
+                type="button"
+                class="btn-ai-support-top"
+                id="btnViewScript"
+                th:if="${submission != null}"
+                onclick="document.getElementById('scriptModalOverlay').style.display='flex'"
+              >
+                Kịch bản
+              </button>
+
+              <button
+                type="button"
+                class="btn-ai-support-top primary"
+                id="btnLoadPage"
+                th:if="${page != null}"
+              >
+                Mở file
+              </button>
+
+              <input type="file" id="inputLoadPage" accept="image/png,image/jpeg,.png,.jpg,.jpeg" />
+            </div>
+
+            <div class="color-palette-bar">
+              <span class="palette-label">Palette</span>
+              <div class="palette-swatch" data-color="#000000"></div>
+              <div class="palette-swatch" data-color="#ffffff"></div>
+              <div class="palette-swatch" data-color="#7f7f7f"></div>
+              <div class="palette-swatch" data-color="#c3c3c3"></div>
+              <div class="palette-swatch" data-color="#ff0000"></div>
+              <div class="palette-swatch" data-color="#ff7f00"></div>
+              <div class="palette-swatch" data-color="#ffff00"></div>
+              <div class="palette-swatch" data-color="#00ff00"></div>
+              <div class="palette-swatch" data-color="#00ffff"></div>
+              <div class="palette-swatch" data-color="#0078ff"></div>
+              <div class="palette-swatch" data-color="#7f00ff"></div>
+              <div class="palette-swatch" data-color="#ff00ff"></div>
+              <div class="palette-swatch" data-color="#8b4513"></div>
+              <div class="palette-swatch" data-color="#ffc0cb"></div>
+              <div class="palette-swatch" data-color="#ffd700"></div>
+              <div class="palette-swatch" data-color="#2e8b57"></div>
+            </div>
+
+            <div class="canvas-viewport" id="canvasViewport">
+              <div class="canvas-stack u-inline-style-031" id="canvasStack">
+                <canvas id="drawCanvas" width="400" height="600"></canvas>
+                <div class="canvas-region-select" id="regionSelectBox"></div>
+              </div>
+            </div>
+
+            <div class="status-bar">
+              <span id="statusTool">Công cụ: Bút vẽ</span>
+              <span id="statusRegion">Vùng AI: Toàn canvas</span>
+              <div class="zoom-controls">
+                <button type="button" class="zoom-btn" id="zoomOut">
+                  <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <span id="zoomValue">100%</span>
+                <button type="button" class="zoom-btn" id="zoomIn">
+                  <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <button type="button" class="zoom-btn" id="zoomReset">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bảng bên phải: quản lý layer và trao đổi hỗ trợ. -->
+          <div class="right-panel">
+            <div class="panel-section">
+              <h3 class="layer-panel-title">Layers</h3>
+              <button type="button" class="header-btn layer-add-button" id="btnAddLayer" title="Thêm layer mới">
+                Thêm layer mới
+              </button>
+              <div id="layerList"></div>
+            </div>
+            <div class="panel-section manga-chat-panel">
+              <div class="panel-section-header manga-chat-header">
+                <span>Manga Chat </span>
+                <span class="manga-chat-status">AI hỗ trợ</span>
+              </div>
+              <div class="chat-history-list" id="chatHistoryList"></div>
+              <div class="chat-input-area">
+                <div id="chatImagePreview" class="u-inline-style-061 manga-chat-preview">
+                  <img id="chatImgPrevSrc" src="" class="u-inline-style-062" />
+                  <button type="button" onclick="removeChatImage()" class="u-inline-style-063" aria-label="Xóa ảnh đính kèm">
+                    &times;
+                  </button>
+                </div>
+                <div class="manga-chat-composer u-inline-style-064">
+                  <button type="button" class="btn-icon u-inline-style-065 manga-chat-attach" onclick="document.getElementById('chatImageInput').click()" title="Đính kèm ảnh" aria-label="Đính kèm ảnh">
+                    <i class="fa-solid fa-paperclip"></i>
+                  </button>
+                  <input type="file" id="chatImageInput" accept="image/png, image/jpeg" onchange="previewChatImage(event)" class="u-inline-style-002" />
+                  <input type="text" id="chatTextInput" placeholder="Nhắn cho trợ lý AI..." onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendChatMessage(); }" class="u-inline-style-066 manga-chat-input" />
+                  <button type="button" class="btn-submit u-inline-style-067 manga-chat-send" onclick="sendChatMessage()" id="btnSendChat" aria-label="Gửi tin nhắn">
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="panel-section u-inline-style-032">
+              <div class="panel-section-header">Lịch sử thao tác</div>
+              <div class="history-list" id="historyList"></div>
+            </div>
+          </div>
+        </div>
+    <!-- Cửa sổ kịch bản và ghi chú công việc. -->
+        <div
+          id="scriptModalOverlay"
+          th:if="${submission != null}"
+          class="u-inline-style-033"
+        >
+          <div class="u-inline-style-034">
+            <h3 class="u-inline-style-035">Kịch bản &amp; Note công việc</h3>
+
+            <h4>Kịch bản chapter</h4>
+            <p
+              th:text="${#strings.isEmpty(chapterScript)} ? 'Chưa có kịch bản chapter.' : ${chapterScript}"
+              class="u-inline-style-036"
+            ></p>
+
+            <h4>Kịch bản trang</h4>
+            <p
+              th:text="${#strings.isEmpty(pageScript)} ? 'Chưa có kịch bản trang.' : ${pageScript}"
+              class="u-inline-style-036"
+            ></p>
+
+            <h4>Note từng frame</h4>
+            <p th:if="${frameTasks == null or #lists.isEmpty(frameTasks)}">
+              Không có note frame nào.
+            </p>
+            <div th:each="ft : ${frameTasks}" class="u-inline-style-037">
+              <b th:text="'Frame ' + ${ft.frameNumber}"></b>
+              <p
+                th:text="${#strings.isEmpty(ft.content)} ? '(không có note)' : ${ft.content}"
+                class="u-inline-style-038"
+              ></p>
+            </div>
+
+            <div class="u-inline-style-039">
+              <button
+                type="button"
+                onclick="document.getElementById('scriptModalOverlay').style.display='none'"
+                class="u-inline-style-040"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="aiModalOverlay" class="ai-modal-overlay">
+          <div class="ai-modal-box">
+            <div class="ai-modal-header">
+              <h5>AI Support</h5>
+              <button type="button" class="ai-modal-close" id="btnCloseAiModal">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div class="ai-modal-body">
+              <div id="aiFeatureListView">
+                <div class="ai-feature-grid">
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="color"
+                    data-name="Tô màu"
+                    data-type="image"
+                  >
+                    <div class="ai-feature-name">Tô màu</div>
+                    <div class="ai-feature-desc">
+                      Tô màu panel theo gam màu tự nhiên
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="shadow"
+                    data-name="Đổ bóng"
+                    data-type="image"
+                  >
+                    <div class="ai-feature-name">Đổ bóng</div>
+                    <div class="ai-feature-desc">
+                      Thêm shading & lighting tự động
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="clean_line"
+                    data-name="Clean lineart"
+                    data-type="image"
+                  >
+                    <div class="ai-feature-name">Clean lineart</div>
+                    <div class="ai-feature-desc">
+                      Nét thảo thành nét sạch chuyên nghiệp
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="background"
+                    data-name="Background"
+                    data-type="image"
+                  >
+                    <div class="ai-feature-name">Background</div>
+                    <div class="ai-feature-desc">
+                      Vẽ background chi tiết cho panel
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="lettering"
+                    data-name="Lettering"
+                    data-type="vision"
+                  >
+                    <div class="ai-feature-name">Lettering</div>
+                    <div class="ai-feature-desc">
+                      Phân tích balloon, gợi ý căn chỉnh
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-feature-card"
+                    data-feature="expression"
+                    data-name="Biểu cảm"
+                    data-type="vision"
+                  >
+                    <div class="ai-feature-name">Biểu cảm</div>
+                    <div class="ai-feature-desc">
+                      Nhận diện emotion nhân vật
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div id="aiDetailView" class="ai-detail-view">
+                <button
+                  type="button"
+                  class="ai-detail-back"
+                  id="btnBackToFeatureList"
+                >
+                  Quay lại
+                </button>
+                <div class="ai-detail-title" id="aiDetailTitle"></div>
+
+                <div class="ai-region-row">
+                  <span class="ai-region-label">Vùng áp dụng:</span>
+                  <button
+                    type="button"
+                    class="ai-region-btn active"
+                    data-region="full"
+                  >
+                    Toàn canvas
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-region-btn"
+                    data-region="select"
+                  >
+                    Chọn vùng
+                  </button>
+                </div>
+                <span class="ai-region-status" id="aiRegionStatus"
+                  >Sẽ áp dụng cho toàn bộ canvas</span
+                >
+
+                <textarea
+                  class="ai-prompt-input"
+                  id="aiPromptInput"
+                  placeholder="Mô tả thêm yêu cầu (không bắt buộc)..."
+                ></textarea>
+
+                <div class="ai-modal-footer">
+                  <button type="button" class="ai-btn-run" id="btnRunAi">
+                    Chạy AI
+                  </button>
+                </div>
+              </div>
+
+              <div id="aiLoadingView" class="ai-loading-view">
+                <div class="ai-spinner"></div>
+                <p class="u-inline-style-041">AI đang xử lý, vui lòng chờ...</p>
+              </div>
+
+              <div id="aiResultView" class="ai-result-view">
+                <div class="ai-detail-title" id="aiResultTitle">Kết quả</div>
+                <img
+                  id="aiResultImage"
+                  class="ai-result-image u-inline-style-002"
+                />
+                <div
+                  id="aiResultText"
+                  class="ai-result-text u-inline-style-002"
+                ></div>
+                <div
+                  id="aiErrorText"
+                  class="ai-error-text u-inline-style-002"
+                ></div>
+                <div class="ai-modal-footer">
+                  <button
+                    type="button"
+                    class="ai-btn-secondary"
+                    id="btnAiResultBack"
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    type="button"
+                    class="ai-btn-run u-inline-style-002"
+                    id="btnApplyToCanvas"
+                  >
+                    Apply to canvas
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-project" class="tab-pane">
+        <h2>Công việc được giao</h2>
+
+        <div
+          class="proposal-tabs-nav assistant-task-tabs-nav"
+          role="tablist"
+          aria-label="Lọc công việc theo trạng thái"
+        >
+          <button
+            type="button"
+            class="proposal-tab-btn active"
+            data-assistant-task-tab="doing"
+            onclick="setAssistantTaskTab('doing')"
+          >
+            Đang làm
+            <span
+              class="proposal-tab-count"
+              th:text="${todo != null ? #lists.size(todo) : 0}"
+            ></span>
+          </button>
+          <button
+            type="button"
+            class="proposal-tab-btn"
+            data-assistant-task-tab="waiting"
+            onclick="setAssistantTaskTab('waiting')"
+          >
+            Chờ duyệt
+            <span
+              class="proposal-tab-count"
+              th:text="${waiting != null ? #lists.size(waiting) : 0}"
+            ></span>
+          </button>
+          <button
+            type="button"
+            class="proposal-tab-btn"
+            data-assistant-task-tab="done"
+            onclick="setAssistantTaskTab('done')"
+          >
+            Hoàn thành
+            <span
+              class="proposal-tab-count"
+              th:text="${done != null ? #lists.size(done) : 0}"
+            ></span>
+          </button>
+        </div>
+
+        <p class="ptab-sub-desc assistant-task-month-summary">
+          <span th:text="${currentMonthLabel != null ? currentMonthLabel : 'Hoàn thành tháng này'}"></span>:
+          <strong th:text="${completedThisMonth != null ? completedThisMonth : 0}"></strong> task —
+          Lương tháng này:
+          <strong th:text="|${monthlySalary != null ? #numbers.formatInteger(monthlySalary, 0, 'COMMA') : 0} VNĐ|"></strong>
+        </p>
+
+        <p
+          id="assistantTaskTabDesc"
+          class="ptab-sub-desc assistant-task-tab-desc"
+        >
+          Các công việc đang cần thực hiện.
+        </p>
+
+        <div class="assistant-task-table-wrap">
+          <table class="data-table assistant-task-table">
+            <thead>
+              <tr>
+                <th>Trạng thái</th>
+                <th>Series</th>
+                <th>Trang</th>
+                <th>Loại trang</th>
+                <th>Deadline</th>
+                <th>Frame</th>
+                <th>Ghi chú</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="s : ${todo}" data-assistant-task-status="doing">
+                <td>
+                  <span class="task-status-pill status-doing">Đang làm </span>
+                </td>
+                <td>
+                  <strong
+                    th:text="${s.pageId.chapter.series.seriesName}"
+                  ></strong>
+                  <small
+                    >Chapter
+                    <span th:text="${s.pageId.chapter.chapterNumber}"></span>
+                  </small>
+                </td>
+                <td>Trang <span th:text="${s.pageId.pageNumber}"></span></td>
+                <td>
+                  <span th:switch="${s.pageId.pageType}">
+                    <span th:case="'cover'">Trang bìa</span>
+                    <span th:case="'action'">Trang hành động</span>
+                    <span th:case="'rest'">Trang nghỉ</span>
+                    <span th:case="'info'">Trang thông tin</span>
+                    <span th:case="'end'">Trang cuối</span>
+                    <span th:case="*">Trang</span>
+                  </span>
+                </td>
+                <td
+                  th:text="${#temporals.format(s.deadline, 'dd/MM/yyyy HH:mm')}"
+                ></td>
+                <td
+                  th:text="${frameCounts != null ? (frameCounts.get(s.id) ?: 0) : 0}"
+                ></td>
+                <td class="assistant-task-note" th:text="${s.comment}"></td>
+                <td>
+                  <div class="assistant-task-actions">
+                    <a
+                      th:href="@{/manga/assistant/submission/{id}/edit(id=${s.id})}"
+                      class="project-action-btn series-chapter-btn"
+                      >Mở
+                    </a>
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="submitSubmission(this)"
+                    >
+                      Nộp bài
+                    </button>
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="viewKanbanScript(this)"
+                    >
+                      Kịch bản
+                    </button>
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="openMyVersionHistory(this)"
+                    >
+                      Lịch sử
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr th:each="s : ${waiting}" data-assistant-task-status="waiting">
+                <td>
+                  <span class="task-status-pill status-waiting"
+                    >Chờ duyệt
+                  </span>
+                </td>
+                <td>
+                  <strong
+                    th:text="${s.pageId.chapter.series.seriesName}"
+                  ></strong>
+                  <small
+                    >Chapter
+                    <span th:text="${s.pageId.chapter.chapterNumber}"></span>
+                  </small>
+                </td>
+                <td>Trang <span th:text="${s.pageId.pageNumber}"></span></td>
+                <td>
+                  <span th:switch="${s.pageId.pageType}">
+                    <span th:case="'cover'">Trang bìa</span>
+                    <span th:case="'action'">Trang hành động</span>
+                    <span th:case="'rest'">Trang nghỉ</span>
+                    <span th:case="'info'">Trang thông tin</span>
+                    <span th:case="'end'">Trang cuối</span>
+                    <span th:case="*">Trang</span>
+                  </span>
+                </td>
+                <td
+                  th:text="${#temporals.format(s.deadline, 'dd/MM/yyyy HH:mm')}"
+                ></td>
+                <td
+                  th:text="${frameCounts != null ? (frameCounts.get(s.id) ?: 0) : 0}"
+                ></td>
+                <td class="assistant-task-note">
+                  <span th:if="${s.submittedAt != null}"
+                    th:text="|Nộp lúc ${#temporals.format(s.submittedAt, 'dd/MM/yyyy HH:mm')} — đang chờ duyệt.|"
+                  ></span>
+                  <span th:unless="${s.submittedAt != null}">Đã nộp, đang chờ duyệt.</span>
+                </td>
+                <td>
+                  <div class="assistant-task-actions">
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="viewKanbanScript(this)"
+                    >
+                      Kịch bản
+                    </button>
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="openMyVersionHistory(this)"
+                    >
+                      Lịch sử
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr th:each="s : ${done}" data-assistant-task-status="done">
+                <td>
+                  <span class="task-status-pill status-done">Hoàn thành </span>
+                </td>
+                <td>
+                  <strong
+                    th:text="${s.pageId.chapter.series.seriesName}"
+                  ></strong>
+                  <small
+                    >Chapter
+                    <span th:text="${s.pageId.chapter.chapterNumber}"></span>
+                  </small>
+                </td>
+                <td>Trang <span th:text="${s.pageId.pageNumber}"></span></td>
+                <td>
+                  <span th:switch="${s.pageId.pageType}">
+                    <span th:case="'cover'">Trang bìa</span>
+                    <span th:case="'action'">Trang hành động</span>
+                    <span th:case="'rest'">Trang nghỉ</span>
+                    <span th:case="'info'">Trang thông tin</span>
+                    <span th:case="'end'">Trang cuối</span>
+                    <span th:case="*">Trang</span>
+                  </span>
+                </td>
+                <td
+                  th:text="${#temporals.format(s.deadline, 'dd/MM/yyyy HH:mm')}"
+                ></td>
+                <td
+                  th:text="${frameCounts != null ? (frameCounts.get(s.id) ?: 0) : 0}"
+                ></td>
+                <td class="assistant-task-note">
+                  <span th:if="${s.approvedAt != null}">
+                    <span th:if="${s.submittedAt != null}"
+                      th:text="|Nộp ${#temporals.format(s.submittedAt, 'dd/MM/yyyy HH:mm')} — |"></span>
+                    <span
+                      th:text="|Duyệt ${#temporals.format(s.approvedAt, 'dd/MM/yyyy HH:mm')} — +${salaryPerTask != null ? #numbers.formatInteger(salaryPerTask, 0, 'COMMA') : 0} VNĐ|"></span>
+                  </span>
+                  <span th:unless="${s.approvedAt != null}">Đã hoàn thành.</span>
+                </td>
+                <td>
+                  <div class="assistant-task-actions">
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="viewKanbanScript(this)"
+                    >
+                      Kịch bản
+                    </button>
+                    <button
+                      type="button"
+                      class="project-action-btn series-chapter-btn"
+                      th:data-submission-id="${s.id}"
+                      onclick="openMyVersionHistory(this)"
+                    >
+                      Lịch sử
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr
+                class="assistant-task-empty-row"
+                data-assistant-task-status="doing"
+                th:if="${todo == null or #lists.isEmpty(todo)}"
+              >
+                <td colspan="8" class="ptab-sub-desc">
+                  Không có công việc đang làm.
+                </td>
+              </tr>
+              <tr
+                class="assistant-task-empty-row"
+                data-assistant-task-status="waiting"
+                th:if="${waiting == null or #lists.isEmpty(waiting)}"
+              >
+                <td colspan="8" class="ptab-sub-desc">
+                  Không có công việc chờ duyệt.
+                </td>
+              </tr>
+              <tr
+                class="assistant-task-empty-row"
+                data-assistant-task-status="done"
+                th:if="${done == null or #lists.isEmpty(done)}"
+              >
+                <td colspan="8" class="ptab-sub-desc">
+                  Không có công việc hoàn thành.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+    <!-- Cửa sổ xem kịch bản và ghi chú frame từ danh sách công việc. -->
+        <div id="kanbanScriptModalOverlay" class="u-inline-style-033">
+          <div class="u-inline-style-034 assistant-script-modal">
+            <div class="assistant-script-modal-head">
+              <h3 class="u-inline-style-035">Kịch bản &amp; Note công việc</h3>
+              <button
+                type="button"
+                class="modal-close-btn"
+                aria-label="Đóng"
+                onclick="document.getElementById('kanbanScriptModalOverlay').style.display='none'"
+              >
+                ×
+              </button>
+            </div>
+
+            <h4>Kịch bản chapter</h4>
+            <p id="kanbanChapterScript" class="u-inline-style-036"></p>
+
+            <h4>Kịch bản trang</h4>
+            <p id="kanbanPageScript" class="u-inline-style-036"></p>
+
+            <h4>Note từng frame</h4>
+            <div id="kanbanFrameNotesList"></div>
+
+            <div class="u-inline-style-039">
+              <button
+                type="button"
+                onclick="document.getElementById('kanbanScriptModalOverlay').style.display='none'"
+                class="u-inline-style-040"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lịch sử phiên bản của chính task này: trợ lý xem lại đã gửi bản nào,
+             tác giả trả về vì sao, và yêu cầu của từng vòng. -->
+        <div id="myVersionModalOverlay" class="u-inline-style-033">
+          <div class="u-inline-style-034 assistant-script-modal">
+            <div class="assistant-script-modal-head">
+              <h3 class="u-inline-style-035">Lịch sử các vòng của bài nộp</h3>
+              <button
+                type="button"
+                class="modal-close-btn"
+                aria-label="Đóng"
+                onclick="document.getElementById('myVersionModalOverlay').style.display='none'"
+              >
+                ×
+              </button>
+            </div>
+
+            <div id="myVersionSummary" class="assignment-timeline-summary"></div>
+            <div id="myVersionBody" class="version-history-body"></div>
+
+            <div class="u-inline-style-039">
+              <button
+                type="button"
+                onclick="document.getElementById('myVersionModalOverlay').style.display='none'"
+                class="u-inline-style-040"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-assistant" class="tab-pane">
+        <h2>Tác giả đang hỗ trợ</h2>
+        <p>Tính năng đang phát triển...</p>
+      </div>
+
+      <div id="tab-other" class="tab-pane">
+        <h2>Cài đặt khác</h2>
+        <p>Tính năng đang phát triển...</p>
+      </div>
+
+      <div id="tab-chat" class="tab-pane" data-workspace-shell="true">
+        <section class="role-workspace-surface" aria-labelledby="assistantChatWorkspaceTitle">
+          <header class="role-workspace-header">
+            <div><h1 id="assistantChatWorkspaceTitle">Tin nhắn</h1></div>
+          </header>
+          <div class="role-workspace-content">
+            <div class="chat-layout">
+          <div class="chat-contact-list" id="chatContactList">
+            <div class="chat-empty">Đang tải danh sách liên hệ...</div>
+          </div>
+          <div class="chat-thread">
+            <div class="chat-thread-header" id="chatThreadHeader">
+              Chọn một liên hệ để bắt đầu trò chuyện
+            </div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-bar">
+              <input
+                type="text"
+                id="chatInput"
+                placeholder="Nhập tin nhắn..."
+                disabled
+              />
+              <button type="button" id="chatSendBtn" disabled>
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div id="tab-profile" class="tab-pane" data-workspace-shell="true">
+      <section class="role-workspace-surface" aria-labelledby="assistantProfileWorkspaceTitle">
+      <header class="role-workspace-header">
+        <div><h1 id="assistantProfileWorkspaceTitle">Thông tin cá nhân</h1></div>
+      </header>
+      <div class="role-workspace-content">
+      <div class="profile-workspace">
+        <div class="profile-primary-column">
+
+        <!-- Ảnh đại diện: cho phép tải và xem avatar hiện tại. -->
+      <div class="section-card" style="max-width:520px; display:flex; align-items:center; gap:1.5rem; margin-bottom:1rem;">
+        <div style="position:relative; flex-shrink:0;">
+          <img id="profileAvatarImg"
+               src="/images/default-avatar.svg"
+               style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border);"
+               onerror="this.src='/images/default-avatar.svg'" />
+          <label for="avatarFileInput"
+                 style="position:absolute; bottom:0; right:0; background:var(--accent); color:#fff;
+                        border-radius:50%; width:24px; height:24px; display:flex; align-items:center;
+                        justify-content:center; cursor:pointer; font-size:14px;" title="Đổi ảnh">✎</label>
+          <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this)" />
+        </div>
+        <div>
+          <div style="font-weight:600; font-size:1rem;" id="profileDisplayName"></div>
+          <div style="font-size:0.8rem; color:var(--text-muted);" id="profileDisplayRole"></div>
+          <div style="font-size:0.8rem; color:var(--text-muted);" id="profileDisplayId"></div>
+        </div>
+      </div>
+
+        <!-- Thông tin tài khoản: chỉnh sửa dữ liệu cá nhân và bảo mật. -->
+      <div class="section-card" style="max-width:520px;">
+
+        <div class="field">
+          <label>Email <span id="profileEmailVerifiedBadge"></span></label>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input id="profileEmail" disabled style="flex:1;" />
+            <button type="button" class="btn-sm btn-primary" onclick="openChangeEmailModal()">Đổi email</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Username</label>
+          <input id="profileUsername" disabled />
+        </div>
+
+        <div class="field">
+          <label>Họ tên (Nickname)</label>
+          <input id="profileNickname" placeholder="Họ tên hiển thị..." />
+        </div>
+
+        <div class="field">
+          <label>Số điện thoại</label>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input id="profilePhone" placeholder="Chưa có số điện thoại" disabled style="flex:1;" />
+            <button type="button" class="btn-sm btn-primary" onclick="openChangePhoneModal()">Đổi số</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Link cá nhân (mạng xã hội, portfolio...)</label>
+          <input id="profileSocialLinks" placeholder="https://..." />
+        </div>
+
+        <div class="field">
+          <label>Giới thiệu bản thân</label>
+          <textarea id="profileBio" placeholder="Viết vài dòng về bản thân..."
+                    style="width:100%; min-height:80px; resize:vertical;"></textarea>
+        </div>
+
+        <div class="modal-footer" style="padding:0; margin-top:1rem;">
+          <button type="button" class="btn-sm btn-primary" onclick="saveProfile()">Lưu thông tin</button>
+        </div>
+      </div>
+
+        </div>
+
+        <!-- Thông tin theo vai trò: hiển thị dữ liệu nghiệp vụ liên quan. -->
+      <aside id="profileRoleInfo" class="section-card profile-role-card" style="display:none;">
+        <h3 id="profileRoleInfoTitle" style="margin-bottom:1rem;"></h3>
+        <div id="profileRoleInfoContent"></div>
+      </aside>
+      </div>
+      </div>
+      </section>
+    </div>
+
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+    <!-- Cửa sổ đổi mật khẩu bằng OTP. -->
+    <div id="changePasswordModalOverlay" class="app-floating-modal" style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+      <div class="modal-box" style="width:min(440px,100%); max-height:calc(100dvh - var(--app-header-height,72px) - 2.5rem); overflow:auto;">
+      <!-- Bước 1: chọn kênh và gửi OTP. -->
+        <div id="cpStep1">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Đổi mật khẩu</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <p style="color:var(--app-muted); margin-bottom:1rem;">Mã OTP sẽ được gửi tới email của bạn để xác thực.</p>
+          <div id="cpStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <button type="button" class="btn-primary" style="width:100%;" id="btnSendOtp" onclick="cpSendOtp()">Gửi mã OTP</button>
+        </div>
+      <!-- Bước 2: nhập và xác thực OTP. -->
+        <div id="cpStep2" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Nhập mã OTP</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <p style="color:var(--app-muted); margin-bottom:1rem;">Mã OTP đã được gửi tới email của bạn. Có hiệu lực 5 phút.</p>
+          <input type="text" id="cpOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" style="margin-bottom:0.75rem;" />
+          <div id="cpStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <div style="display:flex; gap:0.75rem;">
+            <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="cpGoStep(1)">Quay lại</button>
+            <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="cpVerifyOtp()">Xác nhận</button>
+          </div>
+        </div>
+      <!-- Bước 3: nhập mật khẩu mới. -->
+        <div id="cpStep3" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <h4 style="margin:0;">Mật khẩu mới</h4>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()">×</button>
+          </div>
+          <input type="password" id="cpNewPassword" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)" style="margin-bottom:0.75rem;" />
+          <input type="password" id="cpConfirmPassword" placeholder="Nhập lại mật khẩu mới" style="margin-bottom:0.75rem;" />
+          <div id="cpStep3Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+          <button type="button" class="btn-primary" style="width:100%;" onclick="cpChangePassword()">Xác nhận đổi mật khẩu</button>
+        </div>
+      </div>
+    </div>
+
+
+
+  <div id="emailVerifyOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.85); backdrop-filter:blur(14px);">
+    <div class="modal-box" style="width:min(440px,100%); max-height:calc(100dvh - 5rem); overflow:auto;">
+      <div id="evStep1">
+        <h4 style="margin:0 0 1rem;">Xac thuc email</h4>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Tai khoan cua ban duoc gan email: <strong id="evEmailDisplay"></strong><br>
+          Vui long xac thuc de su dung day du tinh nang.
+        </p>
+        <div id="evStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <button type="button" class="btn-primary" style="width:100%;"
+          id="btnSendVerifyOtp" onclick="evSendOtp()">Nhan ma OTP</button>
+      </div>
+      <div id="evStep2" style="display:none;">
+        <h4 style="margin:0 0 1rem;">Nhap ma OTP</h4>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Ma OTP da duoc gui toi email cua ban. Co hieu luc 5 phut.
+        </p>
+        <input type="text" id="evOtpInput" placeholder="Nhap ma 6 so..."
+          maxlength="6" style="margin-bottom:0.75rem;" />
+        <div id="evStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <button type="button" class="btn-modal-confirm" style="width:100%;"
+          onclick="evConfirmOtp()">Xac nhan</button>
+      </div>
+    </div>
+  </div>
+
+    <div id="changeEmailOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+    <div class="modal-box change-email-modal" style="width:min(460px,100%);">
+      <div id="ceStep1">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Đổi email</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangeEmailModal()">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập email mới bạn muốn sử dụng. Mã OTP xác nhận sẽ được gửi về email hiện tại đã xác thực:
+          <strong id="ceCurrentEmailText"></strong>
+        </p>
+        <div class="field">
+          <label>Email mới</label>
+          <input type="email" id="ceNewEmail" placeholder="email@example.com" autocomplete="email" />
+        </div>
+        <div id="ceStep1Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangeEmailModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="ceSendOtp()">Xác nhận</button>
+        </div>
+      </div>
+      <div id="ceStep2" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Xác nhận OTP</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangeEmailModal()">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Mã OTP đã được gửi về email hiện tại của bạn. Nhập mã 6 số để xác nhận đổi sang
+          <strong id="cePendingEmailText"></strong>.
+        </p>
+        <div class="field">
+          <label>Mã OTP</label>
+          <input type="text" id="ceOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <div id="ceStep2Error" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangeEmailModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" style="flex:1;" onclick="ceConfirmOtp()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="changePhoneOverlay" class="app-floating-modal"
+    style="display:none; background:rgba(4,5,8,0.76); backdrop-filter:blur(14px);">
+    <div class="modal-box" style="width:min(460px,100%);">
+      <div id="cpnStep1">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Đổi số điện thoại</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangePhoneModal()" aria-label="Đóng">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập số điện thoại mới. Mã OTP xác nhận sẽ được gửi về email hiện tại đã xác thực của bạn.
+        </p>
+        <div class="field">
+          <label for="cpnNewPhone">Số điện thoại mới</label>
+          <input type="tel" id="cpnNewPhone" placeholder="Ví dụ: 0912345678" autocomplete="tel" inputmode="tel" />
+        </div>
+        <div id="cpnStep1Error" role="alert" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangePhoneModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" id="cpnSendButton" style="flex:1;" onclick="cpnSendOtp()">Gửi OTP</button>
+        </div>
+      </div>
+      <div id="cpnStep2" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <h4 style="margin:0;">Xác nhận số điện thoại</h4>
+          <button type="button" class="modal-close-btn" onclick="closeChangePhoneModal()" aria-label="Đóng">×</button>
+        </div>
+        <p style="color:var(--app-muted); margin-bottom:1rem;">
+          Nhập mã OTP 6 số để xác nhận đổi sang <strong id="cpnPendingPhoneText"></strong>.
+        </p>
+        <div class="field">
+          <label for="cpnOtpInput">Mã OTP</label>
+          <input type="text" id="cpnOtpInput" placeholder="Nhập mã 6 số..." maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <div id="cpnStep2Error" role="alert" style="display:none; color:#ff7772; margin-bottom:0.75rem;"></div>
+        <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+          <button type="button" class="btn-modal-cancel" style="flex:1;" onclick="closeChangePhoneModal()">Hủy</button>
+          <button type="button" class="btn-modal-confirm" id="cpnConfirmButton" style="flex:1;" onclick="cpnConfirmOtp()">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tập lệnh cuối trang: khởi tạo thư viện và kết nối chức năng với API. -->
+  <script src="/js/draw.js?v=20260729-upload2" defer></script>
+
+  <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+
+  <script src="/js/chat.js?v=20260721-fixed-chat" th:src="@{/js/chat.js(v='20260721-fixed-chat')}"></script>
+
+  <script th:inline="javascript">
+      /**
+       * API của Trợ lý:
+       * - /manga/assistant/*: danh sách công việc, bài nộp và thao tác trang.
+       * - /api/notifications/*: đọc và đồng bộ thông báo.
+       * - /api/account/*: hồ sơ cá nhân và xác thực bảo mật.
+       */
+      function openTab(tabId) {
+        var tabPanes = document.getElementsByClassName("tab-pane");
+
+        for (var i = 0; i < tabPanes.length; i++) {
+          tabPanes[i].classList.remove("active");
+        }
+
+        document.getElementById(tabId).classList.add("active");
+      }
+
+      var activeTabFromController = /*[[${activeTab}]]*/ "tab-home";
+
+      console.log(activeTabFromController);
+
+      if (activeTabFromController) {
+        openTab(activeTabFromController);
+      }
+
+      // Đồng bộ danh sách công việc mỗi 60 giây mà không tải lại trang.
+      // Bỏ qua khi tab vẽ đang mở hoặc cửa sổ trình duyệt đang ẩn.
+      setInterval(function () {
+        const drawTab = document.getElementById("tab-draw");
+        if (
+          document.hidden ||
+          (drawTab && drawTab.classList.contains("active"))
+        ) return;
+        refreshAssistantTasks().catch((error) =>
+          console.warn("Không thể đồng bộ công việc:", error),
+        );
+      }, 60000);
+
+      // Load ảnh submission đã lưu lên canvas khi assistant mở edit
+
+      function setAssistantTaskTab(status) {
+        const labels = {
+          doing: "Các công việc đang cần thực hiện.",
+          waiting: "Các công việc đã nộp và đang chờ duyệt.",
+          done: "Các công việc đã hoàn thành.",
+        };
+
+        document
+          .querySelectorAll("[data-assistant-task-tab]")
+          .forEach((button) => {
+            button.classList.toggle(
+              "active",
+              button.dataset.assistantTaskTab === status,
+            );
+          });
+
+        document
+          .querySelectorAll("[data-assistant-task-status]")
+          .forEach((row) => {
+            row.hidden = row.dataset.assistantTaskStatus !== status;
+          });
+
+        const desc = document.getElementById("assistantTaskTabDesc");
+        if (desc) desc.textContent = labels[status] || labels.doing;
+      }
+
+      async function refreshAssistantTasks(preferredStatus) {
+        if (!window.refreshUiRegions) return false;
+        const activeButton = document.querySelector(
+          "[data-assistant-task-tab].active",
+        );
+        const activeStatus =
+          preferredStatus ||
+          activeButton?.dataset?.assistantTaskTab ||
+          sessionStorage.getItem("assistantTaskStatusTab") ||
+          "doing";
+        const updated = await window.refreshUiRegions(
+          [
+            ".assistant-task-tabs-nav",
+            ".assistant-task-month-summary",
+            ".assistant-task-table-wrap",
+          ],
+          { url: "/manga/assistant" },
+        );
+        if (updated) setAssistantTaskTab(activeStatus);
+        return updated;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setAssistantTaskTab("doing");
+
+        const path = window.location.pathname;
+        const submissionEditMatch = path.match(/\/submission\/([^/]+)\/edit$/);
+        if (submissionEditMatch) {
+          const subId = submissionEditMatch[1];
+          fetch("/manga/assistant/submission/" + subId + "/edit/data")
+            .then((r) => r.json())
+            .then((data) => {
+              // Ưu tiên bản trợ lý đang làm dở (filePath); nếu chưa có (mới được
+              // giao) thì load "bản tác giả giao" (assignedFilePath) để trợ lý vẽ
+              // đè lên — tránh mở lên thấy canvas trắng.
+              const loadPath =
+                data.submission &&
+                (data.submission.filePath || data.submission.assignedFilePath);
+              if (data.status === "success" && loadPath) {
+                const img = new Image();
+                img.onload = () => {
+                  if (layers && layers[1]) {
+                    layers[1].ctx.clearRect(0, 0, 400, 600);
+                    layers[1].ctx.drawImage(img, 0, 0);
+                    pushHistoryEntry("Load submission đã lưu");
+                  }
+                };
+                img.src = loadPath + "?t=" + Date.now();
+              }
+            })
+            .catch((err) => console.error("Lỗi load submission:", err));
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        // Notification toggle
+        const btnNoti = document.getElementById("btnNoti");
+        const dropdown = document.querySelector(".notification-dropdown");
+
+        if (btnNoti && dropdown) {
+          btnNoti.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle("show");
+
+            // Bấm chuông là đánh dấu tất cả thông báo đã đọc luôn
+            fetch("/notification/read-all", { method: "POST" })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "success") {
+                  const badge = btnNoti.querySelector(".badge");
+                  if (badge) badge.remove();
+                  document
+                    .querySelectorAll(".notification-item.unread")
+                    .forEach((el) => el.classList.remove("unread"));
+                }
+              });
+          });
+
+          document.addEventListener("click", () => {
+            dropdown.classList.remove("show");
+          });
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const savedTab = sessionStorage.getItem("assistantActiveTab");
+        const savedTaskTab = sessionStorage.getItem("assistantTaskStatusTab");
+
+        if (savedTab && document.getElementById(savedTab)) {
+          sessionStorage.removeItem("assistantActiveTab");
+          openTab(savedTab);
+        }
+
+        if (savedTaskTab && typeof setAssistantTaskTab === "function") {
+          sessionStorage.removeItem("assistantTaskStatusTab");
+          setAssistantTaskTab(savedTaskTab);
+        }
+        if (document.getElementById('tab-profile') &&
+          document.getElementById('tab-profile').classList.contains('active')) {
+          loadProfile();
+        }
+      });
+
+      async function submitSubmission(btn) {
+        const submissionId = btn.dataset.submissionId;
+        const confirmed = window.showUiConfirm
+          ? await window.showUiConfirm("X\u00e1c nh\u1eadn n\u1ed9p b\u00e0i?", {
+              title: "N\u1ed9p b\u00e0i",
+              okText: "X\u00e1c nh\u1eadn",
+              cancelText: "H\u1ee7y",
+            })
+          : false;
+
+        if (!confirmed) return;
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = "\u0110ang n\u1ed9p...";
+
+        try {
+          const response = await fetch(
+            "/manga/assistant/submission/" + submissionId + "/submit",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: "status=done",
+            },
+          );
+          const data = await response.json();
+
+          if (data.status === "success") {
+            sessionStorage.setItem("assistantActiveTab", "tab-project");
+            sessionStorage.setItem("assistantTaskStatusTab", "waiting");
+
+            if (window.showUiAlertAsync) {
+              await window.showUiAlertAsync("" + data.message);
+            } else {
+              alert("" + data.message);
+            }
+
+            openTab("tab-project");
+            await refreshAssistantTasks("waiting");
+          } else {
+            alert("" + data.message);
+          }
+        } catch (err) {
+          alert("L\u1ed7i: " + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
+
+      // ===== LỊCH SỬ PHIÊN BẢN CỦA MỘT TASK =====
+      // Mỗi vòng giao việc giữ ảnh riêng ({id}_v{n}_assigned/_submitted.png), nên
+      // trợ lý xem lại được đúng bản mình đã gửi ở từng vòng và lý do bị trả về —
+      // trước đây các vòng dùng chung một file nên vòng cũ bị ghi đè mất.
+      const MY_VERSION_RESULT_LABEL = {
+        pending: "Đang chờ tác giả xử lý",
+        approved: "Tác giả đã duyệt",
+        reassigned: "Tác giả trả về, yêu cầu sửa",
+        cancelled: "Bị huỷ do chapter quá hạn",
+      };
+
+      function escapeVersionText(value) {
+        if (value == null || value === "") return "";
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function renderMyVersionThumb(label, path) {
+        if (!path) {
+          return `<div class="version-thumb is-empty"><span>${label}</span><em>Chưa có</em></div>`;
+        }
+        return `<div class="version-thumb">
+                  <span>${label}</span>
+                  <a href="${path}" target="_blank"><img src="${path}" alt="${label}" /></a>
+                </div>`;
+      }
+
+      function openMyVersionHistory(btn) {
+        const submissionId = btn.dataset.submissionId;
+        const overlay = document.getElementById("myVersionModalOverlay");
+        const body = document.getElementById("myVersionBody");
+        const summary = document.getElementById("myVersionSummary");
+        if (!overlay || !body) return;
+
+        summary.innerHTML = "";
+        body.innerHTML = "<p>Đang tải lịch sử...</p>";
+        overlay.style.display = "flex";
+
+        fetch("/api/assignment-history/submission/" + encodeURIComponent(submissionId))
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status !== "success") {
+              body.innerHTML = `<p>${escapeVersionText(data.message || "Không tải được lịch sử.")}</p>`;
+              return;
+            }
+            const versions = data.versions || [];
+            if (versions.length === 0) {
+              body.innerHTML =
+                "<p>Task này chưa có vòng nào được ghi nhận. Các task giao trước khi hệ thống lưu lịch sử sẽ không có dữ liệu ở đây.</p>";
+              return;
+            }
+
+            const s = data.summary || {};
+            summary.innerHTML =
+              "<span>Tổng số vòng: <strong>" + (s.totalRounds || 0) + "</strong></span>" +
+              "<span>Được duyệt: <strong>" + (s.approved || 0) + "</strong></span>" +
+              "<span>Bị trả về: <strong>" + (s.reassigned || 0) + "</strong></span>" +
+              "<span>Nộp trễ hạn: <strong>" + (s.lateSubmissions || 0) + "</strong></span>";
+
+            body.innerHTML = versions
+              .map(
+                (v) => `
+                <div class="version-entry">
+                  <div class="version-entry-head">
+                    <strong>Vòng ${v.roundNo}</strong>
+                    <span class="badge">${MY_VERSION_RESULT_LABEL[v.result] || v.result}</span>
+                    ${v.late ? '<span class="badge badge-status-rejected">Trễ hạn</span>' : ""}
+                  </div>
+                  <div class="version-entry-meta">
+                    <div>Được giao: <span class="date-value">${formatAppDateTime(v.assignedAt)}</span></div>
+                    <div>Deadline: <span class="date-value">${formatAppDateTime(v.deadline)}</span></div>
+                    <div>Bạn nộp: <span class="date-value">${
+                      v.submittedAt ? formatAppDateTime(v.submittedAt) : "chưa nộp"
+                    }</span></div>
+                    <div>Tác giả xử lý: <span class="date-value">${
+                      v.reviewedAt ? formatAppDateTime(v.reviewedAt) : "chưa xử lý"
+                    }</span></div>
+                  </div>
+                  ${
+                    v.assignComment
+                      ? `<p><strong>Yêu cầu của tác giả:</strong> ${escapeVersionText(v.assignComment)}</p>`
+                      : ""
+                  }
+                  ${
+                    v.reviewComment
+                      ? `<p><strong>Lý do bị trả về:</strong> ${escapeVersionText(v.reviewComment)}</p>`
+                      : ""
+                  }
+                  <div class="version-thumbs">
+                    ${renderMyVersionThumb("Bản tác giả giao", v.assignedFilePath)}
+                    ${renderMyVersionThumb("Bản bạn đã nộp", v.submittedFilePath)}
+                  </div>
+                </div>`,
+              )
+              .join("");
+          })
+          .catch((err) => {
+            body.innerHTML = `<p>Lỗi tải lịch sử: ${escapeVersionText(err.message)}</p>`;
+          });
+      }
+
+      function viewKanbanScript(btn) {
+        const submissionId = btn.dataset.submissionId;
+        fetch("/manga/assistant/submission/" + submissionId + "/edit/data")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.status !== "success") {
+              alert("" + data.message);
+              return;
+            }
+            document.getElementById("kanbanChapterScript").textContent =
+              data.chapterScript && data.chapterScript.trim() !== ""
+                ? data.chapterScript
+                : "Chưa có kịch bản chapter.";
+            document.getElementById("kanbanPageScript").textContent =
+              data.pageScript && data.pageScript.trim() !== ""
+                ? data.pageScript
+                : "Chưa có kịch bản trang.";
+
+            const frameTasks = data.frameTasks || [];
+            const listEl = document.getElementById("kanbanFrameNotesList");
+            listEl.innerHTML = "";
+            if (frameTasks.length === 0) {
+              const p = document.createElement("p");
+              p.textContent = "Không có note frame nào.";
+              listEl.appendChild(p);
+            } else {
+              frameTasks.forEach((ft) => {
+                const box = document.createElement("div");
+                box.style.cssText =
+                  "border:1px solid #555; border-radius:6px; padding:8px 10px; margin-bottom:8px;";
+                const b = document.createElement("b");
+                b.textContent = "Frame " + ft.frameNumber;
+                const p = document.createElement("p");
+                p.style.cssText = "white-space:pre-wrap; margin:4px 0 0 0;";
+                p.textContent =
+                  ft.content && ft.content.trim() !== ""
+                    ? ft.content
+                    : "(không có note)";
+                box.appendChild(b);
+                box.appendChild(p);
+                listEl.appendChild(box);
+              });
+            }
+
+            document.getElementById("kanbanScriptModalOverlay").style.display =
+              "flex";
+          })
+          .catch((err) => alert("Lỗi: " + err.message));
+      }
+    </script>
+
+  <script src="/js/ui-alert.js?v=20260721-fullscreen-modal" th:src="@{/js/ui-alert.js(v='20260721-fullscreen-modal')}"></script>
+
+  <script>
+// ===== CHUYỂN TRẠNG THÁI SANG TIẾNG VIỆT =====
+const STATUS_VI_MAP = {
+  unfinish: "Đang thực hiện",
+  unfinished: "Đang thực hiện",
+  finish: "Hoàn thành",
+  finished: "Hoàn thành",
+  done: "Chờ duyệt",
+  intask: "Đang làm",
+  untask: "Chưa có việc",
+  pass: "Đã duyệt",
+  passed: "Đã thông qua",
+  approved: "Đã duyệt",
+  reject: "Từ chối",
+  rejected: "Bị từ chối",
+  revision: "Cần sửa",
+  pending: "Chờ xử lý",
+  pending_cancel: "Chờ duyệt hủy",
+  board_check: "Hội đồng đang xét",
+  started: "Đã khởi động",
+  stopped: "Đã dừng",
+  locked: "Bị khóa",
+  published: "Đã xuất bản",
+  rewarded: "Đã khen thưởng",
+  active: "Đang mở",
+  closed: "Đã đóng",
+  assigned: "Đã giao",
+  submitted: "Đã nộp",
+  success: "Thành công",
+  error: "Lỗi"
+};
+
+function formatStatusVi(status, fallback = "Chưa xác định") {
+  if (status === null || status === undefined || status === "") return fallback;
+  const key = String(status).trim().toLowerCase();
+  return STATUS_VI_MAP[key] || status;
+}
+
+
+    function openChangePasswordModal() {
+      cpGoStep(1);
+      document.getElementById('changePasswordModalOverlay').style.display = 'flex';
+    }
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModalOverlay').style.display = 'none';
+      cpGoStep(1);
+      ['cpOtpInput','cpNewPassword','cpConfirmPassword'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      ['cpStep1Error','cpStep2Error','cpStep3Error'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+    function cpGoStep(step) {
+      ['cpStep1','cpStep2','cpStep3'].forEach((id, i) => {
+        document.getElementById(id).style.display = (i + 1 === step) ? 'block' : 'none';
+      });
+    }
+    async function cpSendOtp() {
+      const btn = document.getElementById('btnSendOtp');
+      const errEl = document.getElementById('cpStep1Error');
+      btn.disabled = true;
+      btn.textContent = 'Đang gửi...';
+      errEl.style.display = 'none';
+      try {
+        const res = await fetch('/api/account/send-otp', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          cpGoStep(2);
+        } else {
+          errEl.textContent = data.message || 'Lỗi gửi OTP';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Gửi mã OTP';
+      }
+    }
+    async function cpVerifyOtp() {
+      const otp = document.getElementById('cpOtpInput').value.trim();
+      const errEl = document.getElementById('cpStep2Error');
+      errEl.style.display = 'none';
+      if (!otp || otp.length !== 6) {
+        errEl.textContent = 'Vui lòng nhập đủ 6 số';
+        errEl.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/account/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ otp })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          cpGoStep(3);
+        } else {
+          errEl.textContent = data.message || 'OTP không đúng';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      }
+    }
+    async function cpChangePassword() {
+      const newPass = document.getElementById('cpNewPassword').value;
+      const confirmPass = document.getElementById('cpConfirmPassword').value;
+      const errEl = document.getElementById('cpStep3Error');
+      errEl.style.display = 'none';
+      if (!newPass || newPass.length < 6) {
+        errEl.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (newPass !== confirmPass) {
+        errEl.textContent = 'Mật khẩu nhập lại không khớp';
+        errEl.style.display = 'block';
+        return;
+      }
+      try {
+        const res = await fetch('/api/account/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newPassword: newPass, confirmPassword: confirmPass })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          closeChangePasswordModal();
+          alert('Đổi mật khẩu thành công!');
+        } else {
+          errEl.textContent = data.message || 'Lỗi đổi mật khẩu';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Lỗi kết nối';
+        errEl.style.display = 'block';
+      }
+    }
+    </script>
+
+  <script>
+// API /api/account/profile và /api/account/verify-email/*: kiểm tra, gửi và xác nhận OTP email.
+// ===== CỬA SỔ XÁC THỰC EMAIL =====
+(function() {
+  async function checkEmailVerified() {
+    try {
+      const res = await fetch('/api/account/profile');
+      const data = await res.json();
+      if (data && data.emailVerified === false && data.email) {
+        document.getElementById('evEmailDisplay').textContent = data.email;
+        document.getElementById('emailVerifyOverlay').style.display = 'flex';
+      }
+    } catch(e) {}
+  }
+
+  window.evSendOtp = async function() {
+    const btn = document.getElementById('btnSendVerifyOtp');
+    const errEl = document.getElementById('evStep1Error');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = 'Dang gui...';
+    errEl.style.display = 'none';
+    let reachedServer = false;
+    try {
+      const res = await fetch('/api/account/verify-email', { method: 'POST' });
+      const data = await res.json();
+      reachedServer = true;
+      if (data.status === 'success') {
+        document.getElementById('evStep1').style.display = 'none';
+        document.getElementById('evStep2').style.display = 'block';
+      } else {
+        errEl.textContent = data.message || 'Loi gui OTP';
+        errEl.style.display = 'block';
+      }
+    } catch(e) {
+      errEl.textContent = 'Loi ket noi';
+      errEl.style.display = 'block';
+    } finally {
+      if (reachedServer) {
+        // Da thuc su goi API gui mail (thanh cong hay that bai deu tinh) ->
+        // khoa nut 60s de tranh bam lien tuc lam can quota gui mail hang ngay.
+        let remain = 60;
+        btn.textContent = 'Gui lai sau ' + remain + 's';
+        const timer = setInterval(() => {
+          remain--;
+          if (remain <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = 'Nhan ma OTP';
+          } else {
+            btn.textContent = 'Gui lai sau ' + remain + 's';
+          }
+        }, 1000);
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Nhan ma OTP';
+      }
+    }
+  };
+
+  window.evConfirmOtp = async function() {
+    const otp = document.getElementById('evOtpInput').value.trim();
+    const errEl = document.getElementById('evStep2Error');
+    errEl.style.display = 'none';
+    if (!otp || otp.length !== 6) {
+      errEl.textContent = 'Vui long nhap du 6 so';
+      errEl.style.display = 'block';
+      return;
+    }
+    try {
+      const res = await fetch('/api/account/confirm-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        document.getElementById('emailVerifyOverlay').style.display = 'none';
+      } else {
+        errEl.textContent = data.message || 'OTP khong dung';
+        errEl.style.display = 'block';
+      }
+    } catch(e) {
+      errEl.textContent = 'Loi ket noi';
+      errEl.style.display = 'block';
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', checkEmailVerified);
+})();
+
+// ===== TAB THONG TIN CA NHAN =====
+async function loadProfile() {
+  try {
+    const res = await fetch('/api/account/profile');
+    const data = await res.json();
+    if (!data || data.id === undefined) return;
+
+    const avatarImg = document.getElementById('profileAvatarImg');
+    if (avatarImg && data.avatar) avatarImg.src = window.withFreshAssetUrl ? window.withFreshAssetUrl(data.avatar) : data.avatar;
+
+    const dn = document.getElementById('profileDisplayName');
+    if (dn) dn.textContent = data.fullname || '';
+    const dr = document.getElementById('profileDisplayRole');
+    if (dr) dr.textContent = (data.role || '').toUpperCase();
+    const di = document.getElementById('profileDisplayId');
+    if (di) di.textContent = 'ID: ' + (data.id || '') + (data.profileId ? '  |  Profile: ' + data.profileId : '');
+
+    document.getElementById('profileEmail').value = data.email || '';
+    document.getElementById('profileUsername').value = data.username || '';
+    document.getElementById('profileNickname').value = data.fullname || '';
+    document.getElementById('profilePhone').value = data.phone || '';
+    document.getElementById('profileSocialLinks').value = data.socialLinks || '';
+    document.getElementById('profileBio').value = data.profile || '';
+
+    const badge = document.getElementById('profileEmailVerifiedBadge');
+    if (badge) {
+      badge.textContent = data.emailVerified ? '✓ Đã xác thực' : '⚠ Chưa xác thực';
+      badge.dataset.state = data.emailVerified ? 'verified' : 'unverified';
+    }
+
+    renderProfileRoleInfo(data);
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  const body = {
+    nickname: document.getElementById('profileNickname').value.trim(),
+    socialLinks: document.getElementById('profileSocialLinks').value.trim(),
+    profile: document.getElementById('profileBio').value.trim()
+  };
+  try {
+    const res = await fetch('/api/account/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      if (typeof showToast === 'function') showToast('Cập nhật thành công', 'success');
+      else alert('Cập nhật thành công!');
+      const dn = document.getElementById('profileDisplayName');
+      if (dn) dn.textContent = body.nickname || dn.textContent;
+    } else {
+      if (typeof showToast === 'function') showToast(data.message, 'error');
+      else alert(data.message);
+    }
+  } catch(e) {
+    alert('Lỗi kết nối');
+  }
+}
+
+async function uploadAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/api/account/upload-avatar', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const avatarImg = document.getElementById('profileAvatarImg');
+      if (avatarImg) avatarImg.src = window.withFreshAssetUrl ? window.withFreshAssetUrl(data.avatarUrl) : data.avatarUrl;
+      if (typeof showToast === 'function') showToast('Cập nhật ảnh thành công', 'success');
+    } else {
+      if (typeof showToast === 'function') showToast(data.message, 'error');
+      else alert(data.message);
+    }
+  } catch(e) {
+    alert('Lỗi upload ảnh');
+  }
+}
+
+function renderProfileRoleInfo(data) {
+  const container = document.getElementById('profileRoleInfo');
+  const title = document.getElementById('profileRoleInfoTitle');
+  const content = document.getElementById('profileRoleInfoContent');
+  if (!container || !title || !content) return;
+
+  const role = (data.role || '').toLowerCase();
+  let html = '';
+
+  if (role === 'mangaka') {
+    title.textContent = 'Thông tin Mangaka';
+    
+    html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalSeries || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Series</div>';
+    html += '</div>';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalAssistants || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Trợ lý</div>';
+    html += '</div>';
+    html += '</div>';
+
+    if (data.editor) {
+      html += '<div class="field"><label>Tantou Editor phụ trách</label>';
+      html += '<input value="' + data.editor.editorName + ' (' + data.editor.editorId + ')" disabled /></div>';
+    }
+    html += '<div class="field"><label>Trợ lý (Assistant) thuộc quản lý</label>';
+    if (data.assistants && data.assistants.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Lương/Task</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
+      for (const a of data.assistants) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + a.name + '</td><td style="padding:4px 8px;">' + a.assistantId + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có assistant nào</p>';
+    }
+    html += '</div>';
+    html += '<div class="field" style="margin-top:1rem;"><label>Series đang quản lý</label>';
+    if (data.series && data.series.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên series</th><th style="text-align:left;padding:4px 8px;">Thể loại</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th><th style="text-align:left;padding:4px 8px;">Ngày bắt đầu</th></tr></thead><tbody>';
+      for (const s of data.series) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + s.seriesName + '</td><td style="padding:4px 8px;">' + (s.genre || '—') + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + (s.startDate || '—') + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có series nào</p>';
+    }
+    html += '</div>';
+
+  } else if (role === 'assistant') {
+    title.textContent = 'Thông tin Assistant';
+    
+    if (data.taskStats) {
+      html += '<div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.taskStats.totalTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Tổng số Task</div>';
+      html += '</div>';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#4caf50;">' + (data.taskStats.completedTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Đã hoàn thành</div>';
+      html += '</div>';
+      html += '<div style="flex:1; min-width:100px; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#ff9800;">' + (data.taskStats.pendingTasks || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Đang thực hiện</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    if (data.mangaka) {
+      html += '<div class="field"><label>Mangaka quản lý</label>';
+      html += '<input value="' + data.mangaka.mangakaName + ' (' + data.mangaka.mangakaId + ')" disabled /></div>';
+    }
+    html += '<div class="field"><label>Lương mỗi task</label>';
+    html += '<input value="' + (data.salaryPerTask ?? 0).toLocaleString() + ' đ" disabled /></div>';
+    html += '<div class="field"><label>Trạng thái hiện tại</label>';
+    html += '<input value="' + formatStatusVi(data.status, '') + '" disabled /></div>';
+
+    html += '<div class="field" style="margin-top:1rem;"><label>Task được giao gần đây</label>';
+    if (data.recentTasks && data.recentTasks.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Series/Chương/Trang</th><th style="text-align:left;padding:4px 8px;">Deadline</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
+      for (const t of data.recentTasks.slice(0, 5)) {
+        const title = (t.seriesName || '?') + ' - Ch.' + (t.chapterNumber || '?') + ' - Pg.' + (t.pageNumber || '?');
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + title + '</td><td style="padding:4px 8px;">' + t.deadline.replace('T', ' ') + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
+      }
+      html += '</tbody></table>';
+      if (data.recentTasks.length > 5) html += '<p style="color:var(--text-muted);font-size:0.8rem;text-align:right;margin-top:0.5rem;">(Và ' + (data.recentTasks.length - 5) + ' task khác)</p>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa có task nào</p>';
+    }
+    html += '</div>';
+
+
+  } else if (role === 'tantou') {
+    title.textContent = 'Thông tin Tantou Editor';
+    
+    html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalMangakaManaged || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Mangaka</div>';
+    html += '</div>';
+    html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+    html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.totalSeriesManaged || 0) + '</div>';
+    html += '<div style="font-size:0.8rem; color:var(--text-muted);">Series</div>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="field"><label>Mangaka đang phụ trách</label>';
+    if (data.managedMangaka && data.managedMangaka.length > 0) {
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên Mangaka</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Số Series</th></tr></thead><tbody>';
+      for (const m of data.managedMangaka) {
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + m.mangakaName + '</td><td style="padding:4px 8px;">' + m.mangakaId + '</td><td style="padding:4px 8px;">' + m.seriesCount + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    } else {
+      html += '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Chưa phụ trách Mangaka nào</p>';
+    }
+    html += '</div>';
+
+  } else if (role === 'board') {
+    title.textContent = 'Thông tin Board Member';
+    
+    if (data.voteStats) {
+      html += '<div style="display:flex; gap:1rem; margin-bottom:1rem;">';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">' + (data.voteStats.totalVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Tổng lượt vote</div>';
+      html += '</div>';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#4caf50;">' + (data.voteStats.approvedVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Chấp thuận</div>';
+      html += '</div>';
+      html += '<div style="flex:1; background:var(--bg-light); padding:1rem; border-radius:8px; text-align:center;">';
+      html += '<div style="font-size:1.5rem; font-weight:bold; color:#f44336;">' + (data.voteStats.rejectedVotes || 0) + '</div>';
+      html += '<div style="font-size:0.8rem; color:var(--text-muted);">Từ chối</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+  } else if (role === 'admin') {
+    title.textContent = 'Thông tin Quản trị viên';
+  }
+
+  content.innerHTML = html;
+  container.style.display = html || role === 'board' || role === 'admin' ? 'block' : 'none';
+}
+
+// ===== DOI EMAIL =====
+function ceSetError(id, message) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+function ceGetCurrentEmail() {
+  const input = document.getElementById('profileEmail');
+  return input ? input.value.trim() : '';
+}
+
+function openChangeEmailModal() {
+  const currentEmail = ceGetCurrentEmail();
+  const currentEmailText = document.getElementById('ceCurrentEmailText');
+  if (currentEmailText) currentEmailText.textContent = currentEmail || 'email cũ';
+  document.getElementById('ceNewEmail').value = '';
+  document.getElementById('ceOtpInput').value = '';
+  const pendingEmailText = document.getElementById('cePendingEmailText');
+  if (pendingEmailText) pendingEmailText.textContent = '';
+  ceSetError('ceStep1Error', '');
+  ceSetError('ceStep2Error', '');
+  document.getElementById('ceStep1').style.display = 'block';
+  document.getElementById('ceStep2').style.display = 'none';
+  document.getElementById('changeEmailOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('ceNewEmail')?.focus(), 40);
+}
+
+function closeChangeEmailModal() {
+  document.getElementById('changeEmailOverlay').style.display = 'none';
+}
+
+async function ceSendOtp() {
+  const newEmail = document.getElementById('ceNewEmail').value.trim();
+  ceSetError('ceStep1Error', '');
+  if (!newEmail) {
+    ceSetError('ceStep1Error', 'Vui lòng nhập email mới');
+    return;
+  }
+  try {
+    const res = await fetch('/api/account/send-change-email-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newEmail })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const pendingEmailText = document.getElementById('cePendingEmailText');
+      if (pendingEmailText) pendingEmailText.textContent = newEmail;
+      document.getElementById('ceStep1').style.display = 'none';
+      document.getElementById('ceStep2').style.display = 'block';
+      setTimeout(() => document.getElementById('ceOtpInput')?.focus(), 40);
+      if (typeof showToast === 'function') showToast(data.message || 'Đã gửi OTP về email hiện tại', 'success');
+    } else {
+      ceSetError('ceStep1Error', data.message || 'Không thể gửi OTP');
+    }
+  } catch(e) {
+    ceSetError('ceStep1Error', 'Lỗi kết nối');
+  }
+}
+
+async function ceConfirmOtp() {
+  const otp = document.getElementById('ceOtpInput').value.trim();
+  ceSetError('ceStep2Error', '');
+  if (!/^\d{6}$/.test(otp)) {
+    ceSetError('ceStep2Error', 'Vui lòng nhập đúng mã OTP gồm 6 số');
+    return;
+  }
+  try {
+    const res = await fetch('/api/account/confirm-change-email-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      closeChangeEmailModal();
+      if (typeof loadProfile === 'function') loadProfile();
+      if (typeof showToast === 'function') showToast(data.message || 'Đổi email thành công', 'success');
+      else alert(data.message || 'Đổi email thành công!');
+    } else {
+      ceSetError('ceStep2Error', data.message || 'OTP không đúng');
+    }
+  } catch(e) {
+    ceSetError('ceStep2Error', 'Lỗi kết nối');
+  }
+}
+// ===== ĐỔI SỐ ĐIỆN THOẠI BẰNG OTP =====
+function cpnSetError(id, message) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.style.display = message ? 'block' : 'none';
+}
+
+function cpnSetBusy(id, busy, busyText, idleText) {
+  const button = document.getElementById(id);
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? busyText : idleText;
+}
+
+function openChangePhoneModal() {
+  document.getElementById('cpnNewPhone').value = '';
+  document.getElementById('cpnOtpInput').value = '';
+  document.getElementById('cpnPendingPhoneText').textContent = '';
+  cpnSetError('cpnStep1Error', '');
+  cpnSetError('cpnStep2Error', '');
+  document.getElementById('cpnStep1').style.display = 'block';
+  document.getElementById('cpnStep2').style.display = 'none';
+  document.getElementById('changePhoneOverlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('cpnNewPhone')?.focus(), 40);
+}
+
+function closeChangePhoneModal() {
+  document.getElementById('changePhoneOverlay').style.display = 'none';
+}
+
+async function cpnSendOtp() {
+  const rawPhone = document.getElementById('cpnNewPhone').value.trim();
+  const newPhone = rawPhone.replace(/[\s().-]/g, '');
+  cpnSetError('cpnStep1Error', '');
+  if (!/^\+?\d{8,15}$/.test(newPhone)) {
+    cpnSetError('cpnStep1Error', 'Số điện thoại phải gồm 8 đến 15 chữ số');
+    return;
+  }
+
+  cpnSetBusy('cpnSendButton', true, 'Đang gửi...', 'Gửi OTP');
+  try {
+    const res = await fetch('/api/account/send-change-phone-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPhone })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      document.getElementById('cpnPendingPhoneText').textContent = newPhone;
+      document.getElementById('cpnStep1').style.display = 'none';
+      document.getElementById('cpnStep2').style.display = 'block';
+      setTimeout(() => document.getElementById('cpnOtpInput')?.focus(), 40);
+      if (typeof showToast === 'function') showToast(data.message || 'Đã gửi OTP', 'success');
+    } else {
+      cpnSetError('cpnStep1Error', data.message || 'Không thể gửi OTP');
+    }
+  } catch (e) {
+    cpnSetError('cpnStep1Error', 'Lỗi kết nối');
+  } finally {
+    cpnSetBusy('cpnSendButton', false, 'Đang gửi...', 'Gửi OTP');
+  }
+}
+
+async function cpnConfirmOtp() {
+  const otp = document.getElementById('cpnOtpInput').value.trim();
+  cpnSetError('cpnStep2Error', '');
+  if (!/^\d{6}$/.test(otp)) {
+    cpnSetError('cpnStep2Error', 'Vui lòng nhập đúng mã OTP gồm 6 số');
+    return;
+  }
+
+  cpnSetBusy('cpnConfirmButton', true, 'Đang xác nhận...', 'Xác nhận');
+  try {
+    const res = await fetch('/api/account/confirm-change-phone-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      const phone = document.getElementById('cpnPendingPhoneText').textContent;
+      document.getElementById('profilePhone').value = phone;
+      closeChangePhoneModal();
+      if (typeof showToast === 'function') showToast(data.message || 'Đổi số điện thoại thành công', 'success');
+      else alert(data.message || 'Đổi số điện thoại thành công!');
+    } else {
+      cpnSetError('cpnStep2Error', data.message || 'OTP không đúng');
+    }
+  } catch (e) {
+    cpnSetError('cpnStep2Error', 'Lỗi kết nối');
+  } finally {
+    cpnSetBusy('cpnConfirmButton', false, 'Đang xác nhận...', 'Xác nhận');
+  }
+}
+
+</script>
+
+  <script src="/js/workspace-density.js?v=20260802-home-scroll" th:src="@{/js/workspace-density.js(v='20260802-home-scroll')}"></script>
+</body>
+</html>
