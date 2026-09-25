@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script src="/js/escape-html.js" th:src="@{/js/escape-html.js}"></script>
     <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
     <script defer src="/js/profile-security.js?v=20260721-profile-compact" th:src="@{/js/profile-security.js(v='20260721-profile-compact')}"></script>
     <title>Tantou</title>
@@ -939,7 +940,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             const tbody = document.getElementById("proposalTableBody");
             const countEl = document.getElementById("proposalCount");
             if (data.status === "error") {
-              tbody.innerHTML = `<tr><td colspan="6" class="u-inline-style-049">${data.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="6" class="u-inline-style-049">${escapeHtml(data.message)}</td></tr>`;
               return;
             }
             countEl.textContent = "Tổng số bản thảo chờ duyệt: " + data.total;
@@ -951,9 +952,9 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map(
                 (p) => `
         <tr>
-          <td>${p.id}</td>
-          <td>${p.mangaka?.user?.fullname ?? "—"}</td>
-          <td>${p.seriesName}<br /><small>Dự kiến: ${
+          <td>${escapeHtml(p.id)}</td>
+          <td>${escapeHtml(p.mangaka?.user?.fullname ?? "—")}</td>
+          <td>${escapeHtml(p.seriesName)}<br /><small>Dự kiến: ${
             p.plannedChapterCount != null
               ? p.plannedChapterCount + " chương"
               : "chưa khai"
@@ -961,11 +962,11 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           <td><span class="date-value">${formatAppDateTime(p.submittedAt || p.createdAt)}</span></td>
           <td>${
             p.filePath
-              ? `<a href="${p.filePath}" class="btn-link" target="_blank">Xem bản thảo</a>`
+              ? `<a href="${escapeHtml(p.filePath)}" class="btn-link" target="_blank">Xem bản thảo</a>`
               : "Không có file"
           }</td>
           <td>
-            <button type="button" onclick="openReviewModal('${p.id}', '${p.seriesName.replace(/'/g, "\\'")}', ${p.plannedChapterCount ?? "null"})" class="btn-approve">Xem & duyệt
+            <button type="button" onclick="openReviewModal(${jsArg(p.id)}, ${jsArg(p.seriesName)}, ${p.plannedChapterCount != null && Number.isFinite(Number(p.plannedChapterCount)) ? Number(p.plannedChapterCount) : "null"})" class="btn-approve">Xem & duyệt
             </button>
           </td>
         </tr>`,
@@ -1080,15 +1081,15 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map(
                 (p) => `
         <tr>
-          <td>${p.id}</td>
-          <td>${p.seriesName}<br /><small>Dự kiến: ${
+          <td>${escapeHtml(p.id)}</td>
+          <td>${escapeHtml(p.seriesName)}<br /><small>Dự kiến: ${
             p.plannedChapterCount != null
               ? p.plannedChapterCount + " chương"
               : "chưa khai"
           }</small></td>
           <td><span class="date-value">${formatAppDateTime(p.submittedAt || p.createdAt)}</span></td>
           <td><span class="date-value">${formatAppDateTime(p.reviewedAt)}</span></td>
-          <td><button type="button" onclick="openSubmitBoardModal('${p.id}','${p.seriesName}')" class="btn-approve">Nộp lên hội đồng</button></td>
+          <td><button type="button" onclick="openSubmitBoardModal(${jsArg(p.id)},${jsArg(p.seriesName)})" class="btn-approve">Nộp lên hội đồng</button></td>
         </tr>`,
               )
               .join("");
@@ -1158,21 +1159,21 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             tbody.innerHTML = data.chapters
               .map(
                 (c) => `
-                    <tr id="cr-row-${c.id}">
-                        <td>${c.series.seriesName}</td>
-                        <td><b>Chapter ${c.chapterNumber}</b><br><small class="u-inline-style-156">${c.chapterName}</small></td>
+                    <tr id="cr-row-${escapeHtml(c.id)}">
+                        <td>${escapeHtml(c.series.seriesName)}</td>
+                        <td><b>Chapter ${escapeHtml(c.chapterNumber)}</b><br><small class="u-inline-style-156">${escapeHtml(c.chapterName)}</small></td>
                         <td><span class="date-value">${formatAppDateTime(c.submittedAt)}</span></td>
                         <td>
-                            <button type="button" onclick="openChapterPreview('${c.id}','Chapter ${c.chapterNumber} — ${c.chapterName}')"
+                            <button type="button" onclick="openChapterPreview(${jsArg(c.id)},${jsArg("Chapter " + c.chapterNumber + " — " + c.chapterName)})"
                                 class="btn-action primary u-inline-style-134">Xem trang</button>
                         </td>
                         <td>
-                            <textarea id="cr-comment-${c.id}" placeholder="Nhận xét / yêu cầu chỉnh sửa — BẮT BUỘC khi Từ chối, tuỳ chọn khi Duyệt..." class="u-inline-style-157"></textarea>
+                            <textarea id="cr-comment-${escapeHtml(c.id)}" placeholder="Nhận xét / yêu cầu chỉnh sửa — BẮT BUỘC khi Từ chối, tuỳ chọn khi Duyệt..." class="u-inline-style-157"></textarea>
                         </td>
                         <td>
                             <div class="u-inline-style-158">
-                                <button type="button" onclick="reviewChapter('${c.id}','approve')" class="btn-action approve">Duyệt</button>
-                                <button type="button" onclick="reviewChapter('${c.id}','reject')" class="btn-action reject">Từ chối</button>
+                                <button type="button" onclick="reviewChapter(${jsArg(c.id)},'approve')" class="btn-action approve">Duyệt</button>
+                                <button type="button" onclick="reviewChapter(${jsArg(c.id)},'reject')" class="btn-action reject">Từ chối</button>
                             </div>
                         </td>
                     </tr>`,
@@ -1233,7 +1234,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             if (data.status === "error") {
               // ← thêm
               grid.innerHTML =
-                '<p class="u-inline-style-160">' + data.message + "</p>";
+                '<p class="u-inline-style-160">' + escapeHtml(data.message) + "</p>";
               return;
             }
             const pages = data.pages;
@@ -1248,18 +1249,18 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
     <div class="u-inline-style-161">
         ${
           p.filePath
-            ? `<img src="${p.filePath}?t=${Date.now()}"
-                  onclick="openFullImage('${p.filePath}?t=${Date.now()}')" class="u-inline-style-162">`
+            ? `<img src="${escapeHtml(p.filePath)}?t=${Date.now()}"
+                  onclick="openFullImage(${jsArg(p.filePath + '?t=' + Date.now())})" class="u-inline-style-162">`
             : `<div class="u-inline-style-163">Chưa có ảnh</div>`
         }
-        <small class="u-inline-style-156">Trang ${p.pageNumber}</small>
+        <small class="u-inline-style-156">Trang ${escapeHtml(p.pageNumber)}</small>
         <div style="margin-top:6px; text-align:left;">
           <div style="font-size:11px; font-weight:700; color:var(--text-muted, #888); text-transform:uppercase; margin-bottom:2px;">Kịch bản trang</div>
-          <div style="font-size:12.5px; white-space:pre-wrap; max-height:80px; overflow-y:auto; margin-bottom:6px;">${p.script ? p.script : "(chưa có kịch bản)"}</div>
+          <div style="font-size:12.5px; white-space:pre-wrap; max-height:80px; overflow-y:auto; margin-bottom:6px;">${p.script ? escapeHtml(p.script) : "(chưa có kịch bản)"}</div>
           ${
             p.tantouComment
               ? `<div style="font-size:11px; font-weight:700; color:var(--text-muted, #888); text-transform:uppercase; margin-bottom:2px;">Nhận xét trước đó của bạn</div>
-                 <div style="font-size:12.5px; white-space:pre-wrap;">${p.tantouComment}</div>`
+                 <div style="font-size:12.5px; white-space:pre-wrap;">${escapeHtml(p.tantouComment)}</div>`
               : ""
           }
         </div>
@@ -1340,7 +1341,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         const statRows = Object.keys(chapterStatLabels)
           .map(
             (key) =>
-              `<li>${chapterStatLabels[key]}: <b>${stats[key] ?? 0}</b></li>`,
+              `<li>${escapeHtml(chapterStatLabels[key])}: <b>${escapeHtml(stats[key] ?? 0)}</b></li>`,
           )
           .join("");
 
@@ -1349,21 +1350,21 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map((vs) => {
                 const label = voteSessionTypeLabels[vs.voteType] || vs.voteType;
                 const statusLabel = vs.status === "active" ? "Đang mở" : "Đã đóng";
-                const reasonLine = vs.reason ? `<div>Lý do: ${vs.reason}</div>` : "";
+                const reasonLine = vs.reason ? `<div>Lý do: ${escapeHtml(vs.reason)}</div>` : "";
                 const defenseLine = vs.defenseFilePath
-                  ? `<div><a href="${vs.defenseFilePath}" target="_blank">Hồ sơ bảo vệ (PDF)</a></div>`
+                  ? `<div><a href="${escapeHtml(vs.defenseFilePath)}" target="_blank">Hồ sơ bảo vệ (PDF)</a></div>`
                   : "";
-                const defenseNoteLine = vs.defenseNote ? `<div>Ghi chú: ${vs.defenseNote}</div>` : "";
+                const defenseNoteLine = vs.defenseNote ? `<div>Ghi chú: ${escapeHtml(vs.defenseNote)}</div>` : "";
                 const dateLine = `<div class="review-date-line"><span>Ngày mở/nộp: <strong>${formatAppDate(vs.createdAt)}</strong></span><span>Ngày kết thúc: <strong>${formatAppDate(vs.closedAt)}</strong></span></div>`;
                 const votesLine = (vs.votes || []).length
-                  ? `<div class="vote-date-list">${vs.votes.map((vote) => `<span>${vote.boardName}: ${formatVoteChoiceVi(vote.choice)} · ${formatAppDate(vote.votedAt)}</span>`).join("")}</div>`
+                  ? `<div class="vote-date-list">${vs.votes.map((vote) => `<span>${escapeHtml(vote.boardName)}: ${escapeHtml(formatVoteChoiceVi(vote.choice))} · ${formatAppDate(vote.votedAt)}</span>`).join("")}</div>`
                   : `<div class="vote-date-list"><span>Chưa có phiếu bầu.</span></div>`;
                 const resultLine =
                   vs.status === "closed" && vs.totalBoards != null
                     ? `<div>Kết quả: ${vs.votedCount}/${vs.totalBoards} đã vote — ${vs.positivePercent}% đồng ý (${vs.passed ? "Đạt" : "Không đạt"})</div>`
                     : "";
                 return `<div class="series-info-vote-item">
-                  <b>${label}</b> — ${statusLabel}
+                  <b>${escapeHtml(label)}</b> — ${statusLabel}
                   ${dateLine}${reasonLine}${defenseLine}${defenseNoteLine}${votesLine}${resultLine}
                 </div>`;
               })
@@ -1372,21 +1373,21 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
 
         return `
           <h4>Thông tin chung</h4>
-          <p><strong>Tên series:</strong> ${s.seriesName || "—"}</p>
-          <p><strong>Thể loại:</strong> ${s.genre || "Chưa cập nhật"}</p>
-          <p><strong>Mô tả:</strong> ${s.description || "—"}</p>
+          <p><strong>Tên series:</strong> ${escapeHtml(s.seriesName || "—")}</p>
+          <p><strong>Thể loại:</strong> ${escapeHtml(s.genre || "Chưa cập nhật")}</p>
+          <p><strong>Mô tả:</strong> ${escapeHtml(s.description || "—")}</p>
           <p><strong>Trạng thái:</strong> ${formatStatusVi(s.status, "—")}</p>
-          <p><strong>Ngày bắt đầu:</strong> ${s.startDate || "—"}</p>
+          <p><strong>Ngày bắt đầu:</strong> ${escapeHtml(s.startDate || "—")}</p>
           <hr>
           <h4>Đề xuất gốc (proposal)</h4>
           <ul>
-            <li>Mã đề xuất: ${p.id || "—"}</li>
+            <li>Mã đề xuất: ${escapeHtml(p.id || "—")}</li>
             <li>Ngày nộp: ${formatAppDateTime(p.submittedAt || p.createdAt)}</li>
             <li>Tantou xử lý: ${formatAppDateTime(p.reviewedAt)}</li>
             <li>Nộp hội đồng: ${formatAppDateTime(p.boardSubmittedAt)}</li>
             <li>Hội đồng kết luận: ${formatAppDateTime(p.boardReviewedAt)}</li>
             <li>Điểm biên tập viên chấm: ${p.editorScore != null ? Number(p.editorScore).toFixed(2) : "Chưa chấm"}</li>
-            <li>Nhận xét: ${p.comment || "Không có"}</li>
+            <li>Nhận xét: ${escapeHtml(p.comment || "Không có")}</li>
           </ul>
           <hr>
           <h4>Số liệu chapter</h4>
@@ -1447,16 +1448,16 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                   .map(
                     (m) => `
                   <tr>
-                    <td>${m.name}</td>
-                    <td>${m.email}</td>
-                    <td><button class="btn-action primary" onclick="mmViewSeries('${m.mangakaId}', '${m.name.replace(/'/g, "\\'")}')">Xem Series</button></td>
+                    <td>${escapeHtml(m.name)}</td>
+                    <td>${escapeHtml(m.email)}</td>
+                    <td><button class="btn-action primary" onclick="mmViewSeries(${jsArg(m.mangakaId)}, ${jsArg(m.name)})">Xem Series</button></td>
                   </tr>
                 `,
                   )
                   .join("");
               }
             } else {
-              tbody.innerHTML = `<tr><td colspan="3" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="3" class="u-inline-style-049">Lỗi: ${escapeHtml(res.message)}</td></tr>`;
             }
           })
           .catch((err) => {
@@ -1486,13 +1487,13 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                   .map(
                     (s) => `
                   <tr>
-                    <td>${s.seriesName}</td>
+                    <td>${escapeHtml(s.seriesName)}</td>
                     <td>${formatStatusVi(s.status)}</td>
-                    <td>${s.startDate || "—"}</td>
-                    <td>${s.viewCount}</td>
+                    <td>${escapeHtml(s.startDate || "—")}</td>
+                    <td>${escapeHtml(s.viewCount)}</td>
                     <td>
-                      <button class="btn-action primary u-inline-style-049" onclick="mmViewChapters('${s.seriesId}', '${s.seriesName.replace(/'/g, "\\'")}')">Xem Chapter</button>
-                      <button class="project-action-btn series-info-trigger" onclick="openSeriesInfoModal('${s.seriesId}')">Xem thông tin</button>
+                      <button class="btn-action primary u-inline-style-049" onclick="mmViewChapters(${jsArg(s.seriesId)}, ${jsArg(s.seriesName)})">Xem Chapter</button>
+                      <button class="project-action-btn series-info-trigger" onclick="openSeriesInfoModal(${jsArg(s.seriesId)})">Xem thông tin</button>
                     </td>
                   </tr>
                 `,
@@ -1500,7 +1501,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                   .join("");
               }
             } else {
-              tbody.innerHTML = `<tr><td colspan="5">Lỗi: ${res.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="5">Lỗi: ${escapeHtml(res.message)}</td></tr>`;
             }
           });
       }
@@ -1532,23 +1533,23 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                       .replace(/\n/g, "\\n");
                     const deadlineCell =
                       c.status === "unfinish"
-                        ? `<input type="datetime-local" id="mm-deadline-${c.id}" value="${c.deadline ? c.deadline.substring(0, 16) : ""}" />
-                           <button class="btn-action primary" onclick="mmSaveDeadline('${c.id}')">Lưu</button>`
+                        ? `<input type="datetime-local" id="mm-deadline-${escapeHtml(c.id)}" value="${escapeHtml(c.deadline ? c.deadline.substring(0, 16) : "")}" />
+                           <button class="btn-action primary" onclick="mmSaveDeadline(${jsArg(c.id)})">Lưu</button>`
                         : formatChapterDeadline(c.deadline);
                     return `
                   <tr>
-                    <td>${c.chapterNumber}</td>
-                    <td>${c.chapterName}</td>
+                    <td>${escapeHtml(c.chapterNumber)}</td>
+                    <td>${escapeHtml(c.chapterName)}</td>
                     <td>${deadlineCell}</td>
                     <td>${formatStatusVi(c.status)}</td>
-                    <td><button class="btn-action primary" onclick="mmViewPages('${c.id}', 'Chapter ${c.chapterNumber}: ${c.chapterName.replace(/'/g, "\\'")}', '${scriptEscaped}')">Xem Trang</button></td>
+                    <td><button class="btn-action primary" onclick="mmViewPages(${jsArg(c.id)}, ${jsArg("Chapter " + c.chapterNumber + ": " + c.chapterName)}, ${jsArg(c.script || "")})">Xem Trang</button></td>
                   </tr>
                   `;
                   })
                   .join("");
               }
             } else {
-              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${escapeHtml(res.message)}</td></tr>`;
             }
           });
       }
@@ -1563,7 +1564,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           .then((r) => r.json())
           .then((data) => {
             if (data.status !== "success") {
-              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${data.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${escapeHtml(data.message)}</td></tr>`;
               return;
             }
             const list = data.data || [];
@@ -1575,11 +1576,11 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map((s) => {
                 const actionBtn = s.hasActiveDefense
                   ? `<span class="u-inline-style-048">Đã nộp, chờ hội đồng bỏ phiếu</span>`
-                  : `<button class="btn-action primary" onclick="openSubmitDefenseModal('${s.seriesId}', '${(s.seriesName || "").replace(/'/g, "\\'")}')">Nộp hồ sơ bảo vệ</button>`;
+                  : `<button class="btn-action primary" onclick="openSubmitDefenseModal(${jsArg(s.seriesId)}, ${jsArg(s.seriesName || "")})">Nộp hồ sơ bảo vệ</button>`;
                 return `<tr>
-                  <td>${s.seriesName}</td>
-                  <td>${s.mangakaName || "—"}</td>
-                  <td>${s.reason || "—"}</td>
+                  <td>${escapeHtml(s.seriesName)}</td>
+                  <td>${escapeHtml(s.mangakaName || "—")}</td>
+                  <td>${escapeHtml(s.reason || "—")}</td>
                   <td><span class="date-value">${formatAppDate(s.defenseSubmittedAt)}</span></td>
                   <td>${actionBtn}</td>
                 </tr>`;
@@ -1587,7 +1588,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .join("");
           })
           .catch((err) => {
-            tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="u-inline-style-049">Lỗi: ${escapeHtml(err.message)}</td></tr>`;
           });
       }
 
@@ -1713,17 +1714,17 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                     mmPagesCache[p.id] = p;
                     return `
                   <tr>
-                    <td>${p.pageNumber}</td>
-                    <td>${typeMap[p.pageType] || p.pageType}</td>
+                    <td>${escapeHtml(p.pageNumber)}</td>
+                    <td>${escapeHtml(typeMap[p.pageType] || p.pageType)}</td>
                     <td>${formatStatusVi(p.status)}</td>
-                    <td><button class="btn-action primary" onclick="mmViewPageDetail('${p.id}')">Xem Chi Tiết</button></td>
+                    <td><button class="btn-action primary" onclick="mmViewPageDetail(${jsArg(p.id)})">Xem Chi Tiết</button></td>
                   </tr>
                   `;
                   })
                   .join("");
               }
             } else {
-              tbody.innerHTML = `<tr><td colspan="4" class="u-inline-style-049">Lỗi: ${res.message}</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="4" class="u-inline-style-049">Lỗi: ${escapeHtml(res.message)}</td></tr>`;
             }
           });
       }
@@ -1735,7 +1736,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
 
         const imgContainer = document.getElementById("mm-s5-image");
         if (p.filePath) {
-          imgContainer.innerHTML = `<img src="${p.filePath}" onclick="openFullImage('${p.filePath}')" class="u-inline-style-164">`;
+          imgContainer.innerHTML = `<img src="${escapeHtml(p.filePath)}" onclick="openFullImage(${jsArg(p.filePath)})" class="u-inline-style-164">`;
         } else {
           imgContainer.innerHTML = `<span class="u-inline-style-165">Chưa có ảnh</span>`;
         }
@@ -2095,14 +2096,14 @@ function renderProfileRoleInfo(data) {
 
     if (data.editor) {
       html += '<div class="field"><label>Tantou Editor phụ trách</label>';
-      html += '<input value="' + data.editor.editorName + ' (' + data.editor.editorId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.editor.editorName) + ' (' + escapeHtml(data.editor.editorId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Trợ lý (Assistant) thuộc quản lý</label>';
     if (data.assistants && data.assistants.length > 0) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Lương/Task</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const a of data.assistants) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + a.name + '</td><td style="padding:4px 8px;">' + a.assistantId + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(a.name) + '</td><td style="padding:4px 8px;">' + escapeHtml(a.assistantId) + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -2114,7 +2115,7 @@ function renderProfileRoleInfo(data) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên series</th><th style="text-align:left;padding:4px 8px;">Thể loại</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th><th style="text-align:left;padding:4px 8px;">Ngày bắt đầu</th></tr></thead><tbody>';
       for (const s of data.series) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + s.seriesName + '</td><td style="padding:4px 8px;">' + (s.genre || '—') + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + (s.startDate || '—') + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(s.seriesName) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.genre || '—')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.startDate || '—')) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -2144,7 +2145,7 @@ function renderProfileRoleInfo(data) {
 
     if (data.mangaka) {
       html += '<div class="field"><label>Mangaka quản lý</label>';
-      html += '<input value="' + data.mangaka.mangakaName + ' (' + data.mangaka.mangakaId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.mangaka.mangakaName) + ' (' + escapeHtml(data.mangaka.mangakaId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Lương mỗi task</label>';
     html += '<input value="' + (data.salaryPerTask ?? 0).toLocaleString() + ' đ" disabled /></div>';
@@ -2157,7 +2158,7 @@ function renderProfileRoleInfo(data) {
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Series/Chương/Trang</th><th style="text-align:left;padding:4px 8px;">Deadline</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const t of data.recentTasks.slice(0, 5)) {
         const title = (t.seriesName || '?') + ' - Ch.' + (t.chapterNumber || '?') + ' - Pg.' + (t.pageNumber || '?');
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + title + '</td><td style="padding:4px 8px;">' + t.deadline.replace('T', ' ') + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(title) + '</td><td style="padding:4px 8px;">' + escapeHtml(t.deadline.replace('T', ' ')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
       }
       html += '</tbody></table>';
       if (data.recentTasks.length > 5) html += '<p style="color:var(--text-muted);font-size:0.8rem;text-align:right;margin-top:0.5rem;">(Và ' + (data.recentTasks.length - 5) + ' task khác)</p>';
@@ -2186,7 +2187,7 @@ function renderProfileRoleInfo(data) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên Mangaka</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Số Series</th></tr></thead><tbody>';
       for (const m of data.managedMangaka) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + m.mangakaName + '</td><td style="padding:4px 8px;">' + m.mangakaId + '</td><td style="padding:4px 8px;">' + m.seriesCount + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(m.mangakaName) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.mangakaId) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.seriesCount) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {

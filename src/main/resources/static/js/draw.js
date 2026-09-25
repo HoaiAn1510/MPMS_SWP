@@ -135,7 +135,7 @@ function renderLayerList() {
                         <i class="fa-solid ${layer.visible ? "fa-eye" : "fa-eye-slash"}"></i>
                     </button>
                     <div class="layer-thumb"></div>
-                    <span class="layer-name">${layer.name}</span>
+                    <span class="layer-name">${escapeHtml(layer.name)}</span>
                 `;
     item.addEventListener("click", (e) => {
       if (e.target.closest(".layer-toggle-visible")) return;

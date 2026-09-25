@@ -71,13 +71,13 @@
           (sameContactId(c.id, activeContactId) ? " active" : "") +
           (unread ? " unread" : "") +
           '" data-contact-id="' +
-          c.id +
+          escapeHtml(c.id) +
           '">' +
           '<div class="chat-contact-info">' +
           '<div class="chat-contact-name">' +
           escapeHtml(c.fullname) +
           ' <span class="badge-role badge-' +
-          roleLower +
+          escapeHtml(roleLower) +
           '">' +
           escapeHtml(c.role) +
           "</span>" +

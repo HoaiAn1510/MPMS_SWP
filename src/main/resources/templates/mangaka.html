@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script src="/js/escape-html.js" th:src="@{/js/escape-html.js}"></script>
   <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
   <script defer src="/js/profile-security.js?v=20260723-esms-carriers" th:src="@{/js/profile-security.js(v='20260723-esms-carriers')}"></script>
   <title>Mangaka</title>
@@ -2418,10 +2419,10 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               item.rank +
               "</td>" +
               '<td class="u-inline-style-019">' +
-              item.seriesId +
+              escapeProjectHtml(item.seriesId) +
               "</td>" +
               "<td>" +
-              item.seriesName +
+              escapeProjectHtml(item.seriesName) +
               "</td>" +
               '<td class="u-inline-style-019">' +
               item.totalView +
@@ -2673,7 +2674,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           // Mục 1: link xem file bản thảo đã nộp.
           const fileEl = document.getElementById("detailModalFile");
           if (data.filePath) {
-            fileEl.innerHTML = `<a href="${data.filePath}" target="_blank" class="btn-link">Xem bản thảo đã nộp</a>`;
+            fileEl.innerHTML = `<a href="${escapeProjectHtml(data.filePath)}" target="_blank" class="btn-link">Xem bản thảo đã nộp</a>`;
           } else {
             fileEl.textContent = "Chưa có tập tin";
           }
@@ -2721,7 +2722,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             (data.boardComments || [])
               .map(
                 (c) => `
-        <li><strong>${c.action === "pass" ? "Thông qua" : "Từ chối"}</strong> · ${formatAppDateTime(c.createdAt)}<br>${c.content || "(không có nhận xét)"}</li>
+        <li><strong>${c.action === "pass" ? "Thông qua" : "Từ chối"}</strong> · ${formatAppDateTime(c.createdAt)}<br>${escapeProjectHtml(c.content || "(không có nhận xét)")}</li>
       `,
               )
               .join("") || "<li>Chưa có nhận xét nào.</li>";
@@ -3099,8 +3100,8 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           select.innerHTML = assistants
             .map(
               (a) =>
-                `<option value="${a.id}">
-                      ${a.user.fullname}
+                `<option value="${escapeProjectHtml(a.id)}">
+                      ${escapeProjectHtml(a.user.fullname)}
                   </option>`,
             )
             .join("");
@@ -3727,7 +3728,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
       const statRows = Object.keys(chapterStatLabels)
         .map(
           (key) =>
-            `<li>${chapterStatLabels[key]}: <b>${stats[key] ?? 0}</b></li>`,
+            `<li>${escapeProjectHtml(chapterStatLabels[key])}: <b>${escapeProjectHtml(stats[key] ?? 0)}</b></li>`,
         )
         .join("");
 
@@ -3736,21 +3737,21 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           .map((vs) => {
             const label = voteSessionTypeLabels[vs.voteType] || vs.voteType;
             const statusLabel = vs.status === "active" ? "Đang mở" : "Đã đóng";
-            const reasonLine = vs.reason ? `<div>Lý do: ${vs.reason}</div>` : "";
+            const reasonLine = vs.reason ? `<div>Lý do: ${escapeProjectHtml(vs.reason)}</div>` : "";
             const defenseLine = vs.defenseFilePath
-              ? `<div><a href="${vs.defenseFilePath}" target="_blank">Hồ sơ bảo vệ (PDF)</a></div>`
+              ? `<div><a href="${escapeProjectHtml(vs.defenseFilePath)}" target="_blank">Hồ sơ bảo vệ (PDF)</a></div>`
               : "";
-            const defenseNoteLine = vs.defenseNote ? `<div>Ghi chú: ${vs.defenseNote}</div>` : "";
+            const defenseNoteLine = vs.defenseNote ? `<div>Ghi chú: ${escapeProjectHtml(vs.defenseNote)}</div>` : "";
             const dateLine = `<div class="review-date-line"><span>Ngày mở/nộp: <strong>${formatAppDate(vs.createdAt)}</strong></span><span>Ngày kết thúc: <strong>${formatAppDate(vs.closedAt)}</strong></span></div>`;
             const votesLine = (vs.votes || []).length
-              ? `<div class="vote-date-list">${vs.votes.map((vote) => `<span>${vote.boardName}: ${formatVoteChoiceVi(vote.choice)} · ${formatAppDate(vote.votedAt)}</span>`).join("")}</div>`
+              ? `<div class="vote-date-list">${vs.votes.map((vote) => `<span>${escapeProjectHtml(vote.boardName)}: ${escapeProjectHtml(formatVoteChoiceVi(vote.choice))} · ${formatAppDate(vote.votedAt)}</span>`).join("")}</div>`
               : `<div class="vote-date-list"><span>Chưa có phiếu bầu.</span></div>`;
             const resultLine =
               vs.status === "closed" && vs.totalBoards != null
                 ? `<div>Kết quả: ${vs.votedCount}/${vs.totalBoards} đã vote — ${vs.positivePercent}% đồng ý (${vs.passed ? "Đạt" : "Không đạt"})</div>`
                 : "";
             return `<div class="series-info-vote-item">
-                  <b>${label}</b> — ${statusLabel}
+                  <b>${escapeProjectHtml(label)}</b> — ${statusLabel}
                   ${dateLine}${reasonLine}${defenseLine}${defenseNoteLine}${votesLine}${resultLine}
                 </div>`;
           })
@@ -3759,21 +3760,21 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
 
       return `
           <h4>Thông tin chung</h4>
-          <p><strong>Tên series:</strong> ${s.seriesName || "—"}</p>
-          <p><strong>Thể loại:</strong> ${s.genre || "Chưa cập nhật"}</p>
-          <p><strong>Mô tả:</strong> ${s.description || "—"}</p>
+          <p><strong>Tên series:</strong> ${escapeProjectHtml(s.seriesName || "—")}</p>
+          <p><strong>Thể loại:</strong> ${escapeProjectHtml(s.genre || "Chưa cập nhật")}</p>
+          <p><strong>Mô tả:</strong> ${escapeProjectHtml(s.description || "—")}</p>
           <p><strong>Trạng thái:</strong> ${formatStatusVi(s.status, "—")}</p>
-          <p><strong>Ngày bắt đầu:</strong> ${s.startDate || "—"}</p>
+          <p><strong>Ngày bắt đầu:</strong> ${escapeProjectHtml(s.startDate || "—")}</p>
           <hr>
           <h4>Đề xuất gốc (proposal)</h4>
           <ul>
-            <li>Mã đề xuất: ${p.id || "—"}</li>
+            <li>Mã đề xuất: ${escapeProjectHtml(p.id || "—")}</li>
             <li>Ngày nộp: ${formatAppDateTime(p.submittedAt || p.createdAt)}</li>
             <li>Tantou xử lý: ${formatAppDateTime(p.reviewedAt)}</li>
             <li>Nộp hội đồng: ${formatAppDateTime(p.boardSubmittedAt)}</li>
             <li>Hội đồng kết luận: ${formatAppDateTime(p.boardReviewedAt)}</li>
             <li>Điểm biên tập viên chấm: ${p.editorScore != null ? Number(p.editorScore).toFixed(2) : "Chưa chấm"}</li>
-            <li>Nhận xét: ${p.comment || "Không có"}</li>
+            <li>Nhận xét: ${escapeProjectHtml(p.comment || "Không có")}</li>
           </ul>
           <hr>
           <h4>Số liệu chapter</h4>
@@ -3863,7 +3864,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               };
               // Chỉ series đang phát hành (đã xuất bản ≥1 chapter) mới được đánh dấu hoàn thành.
               const completeBtn = s.status === "published"
-                ? `<button type="button" class="project-action-btn" onclick="completeSeries('${s.id}','${escapeProjectHtml(s.seriesName || "").replace(/'/g, "\\'")}')">Đánh dấu hoàn thành</button>`
+                ? `<button type="button" class="project-action-btn" onclick="completeSeries(${jsArg(s.id)},${jsArg(s.seriesName || "")})">Đánh dấu hoàn thành</button>`
                 : "";
               html += `<tr>
                   <td>
@@ -5363,14 +5364,14 @@ function renderProfileRoleInfo(data) {
 
     if (data.editor) {
       html += '<div class="field"><label>Tantou Editor phụ trách</label>';
-      html += '<input value="' + data.editor.editorName + ' (' + data.editor.editorId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.editor.editorName) + ' (' + escapeHtml(data.editor.editorId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Trợ lý (Assistant) thuộc quản lý</label>';
     if (data.assistants && data.assistants.length > 0) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Lương/Task</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const a of data.assistants) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + a.name + '</td><td style="padding:4px 8px;">' + a.assistantId + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(a.name) + '</td><td style="padding:4px 8px;">' + escapeHtml(a.assistantId) + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -5382,7 +5383,7 @@ function renderProfileRoleInfo(data) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên series</th><th style="text-align:left;padding:4px 8px;">Thể loại</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th><th style="text-align:left;padding:4px 8px;">Ngày bắt đầu</th></tr></thead><tbody>';
       for (const s of data.series) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + s.seriesName + '</td><td style="padding:4px 8px;">' + (s.genre || '—') + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + (s.startDate || '—') + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(s.seriesName) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.genre || '—')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.startDate || '—')) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -5412,7 +5413,7 @@ function renderProfileRoleInfo(data) {
 
     if (data.mangaka) {
       html += '<div class="field"><label>Mangaka quản lý</label>';
-      html += '<input value="' + data.mangaka.mangakaName + ' (' + data.mangaka.mangakaId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.mangaka.mangakaName) + ' (' + escapeHtml(data.mangaka.mangakaId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Lương mỗi task</label>';
     html += '<input value="' + (data.salaryPerTask ?? 0).toLocaleString() + ' đ" disabled /></div>';
@@ -5425,7 +5426,7 @@ function renderProfileRoleInfo(data) {
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Series/Chương/Trang</th><th style="text-align:left;padding:4px 8px;">Deadline</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const t of data.recentTasks.slice(0, 5)) {
         const title = (t.seriesName || '?') + ' - Ch.' + (t.chapterNumber || '?') + ' - Pg.' + (t.pageNumber || '?');
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + title + '</td><td style="padding:4px 8px;">' + t.deadline.replace('T', ' ') + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(title) + '</td><td style="padding:4px 8px;">' + escapeHtml(t.deadline.replace('T', ' ')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
       }
       html += '</tbody></table>';
       if (data.recentTasks.length > 5) html += '<p style="color:var(--text-muted);font-size:0.8rem;text-align:right;margin-top:0.5rem;">(Và ' + (data.recentTasks.length - 5) + ' task khác)</p>';
@@ -5454,7 +5455,7 @@ function renderProfileRoleInfo(data) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên Mangaka</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Số Series</th></tr></thead><tbody>';
       for (const m of data.managedMangaka) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + m.mangakaName + '</td><td style="padding:4px 8px;">' + m.mangakaId + '</td><td style="padding:4px 8px;">' + m.seriesCount + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(m.mangakaName) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.mangakaId) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.seriesCount) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {

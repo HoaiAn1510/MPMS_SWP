@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script src="/js/escape-html.js" th:src="@{/js/escape-html.js}"></script>
   <script src="/js/theme.js" th:src="@{/js/theme.js}"></script>
   <script defer src="/js/profile-security.js?v=20260723-esms-carriers" th:src="@{/js/profile-security.js(v='20260723-esms-carriers')}"></script>
   <title>Quản trị viên</title>
@@ -1021,7 +1022,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         const res = await fetch("/manga/system-admin/series/published");
         const data = await res.json();
         if (data.status !== "success") {
-          tbody.innerHTML = `<tr><td colspan="6" class="text-center-muted">${data.message || "Lỗi tải dữ liệu"}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center-muted">${escapeHtml(data.message || "Lỗi tải dữ liệu")}</td></tr>`;
           return;
         }
         const list = data.series || [];
@@ -1033,13 +1034,13 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           .map(
             (s) => `
               <tr>
-                <td>${s.id}</td>
-                <td>${s.seriesName || "—"}</td>
-                <td>${s.mangakaName || "—"}</td>
-                <td>${s.publishedChapters}</td>
-                <td>${SERIES_STATUS_LABEL[s.status] || s.status}</td>
+                <td>${escapeHtml(s.id)}</td>
+                <td>${escapeHtml(s.seriesName || "—")}</td>
+                <td>${escapeHtml(s.mangakaName || "—")}</td>
+                <td>${escapeHtml(s.publishedChapters)}</td>
+                <td>${escapeHtml(SERIES_STATUS_LABEL[s.status] || s.status)}</td>
                 <td>
-                  <button class="btn-sm btn-primary" onclick="viewSeriesChapters('${s.id}','${(s.seriesName || "").replace(/'/g, "\\'")}')">
+                  <button class="btn-sm btn-primary" onclick="viewSeriesChapters(${jsArg(s.id)},${jsArg(s.seriesName || "")})">
                     <i class="fa-solid fa-list"></i>Xem chapter
                   </button>
                 </td>
@@ -1047,22 +1048,22 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           )
           .join("");
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center-muted">Lỗi: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center-muted">Lỗi: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
     async function viewSeriesChapters(seriesId, seriesName) {
       const box = document.getElementById("series-chapters-detail");
-      box.innerHTML = `<p class="text-center-muted">Đang tải chapter của "${seriesName}"...</p>`;
+      box.innerHTML = `<p class="text-center-muted">Đang tải chapter của "${escapeHtml(seriesName)}"...</p>`;
       try {
         const res = await fetch(`/manga/system-admin/series/${seriesId}/chapters`);
         const data = await res.json();
         if (data.status !== "success") {
-          box.innerHTML = `<p class="text-center-muted">${data.message || "Lỗi tải dữ liệu"}</p>`;
+          box.innerHTML = `<p class="text-center-muted">${escapeHtml(data.message || "Lỗi tải dữ liệu")}</p>`;
           return;
         }
         const chapters = data.chapters || [];
-        let html = `<h4>Chapter của series "${data.seriesName}" (${seriesId})</h4>`;
+        let html = `<h4>Chapter của series "${escapeHtml(data.seriesName)}" (${escapeHtml(seriesId)})</h4>`;
         if (chapters.length === 0) {
           html += `<p class="text-center-muted">Series này chưa có chapter nào.</p>`;
           box.innerHTML = html;
@@ -1075,10 +1076,10 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           .map((c) => {
             const color = CHAPTER_STATUS_CLASS[c.status] || "inherit";
             return `<tr>
-              <td>${c.chapterNumber != null ? c.chapterNumber : "—"}</td>
-              <td>${c.chapterName || "—"}</td>
-              <td style="color:${color};font-weight:600;">${c.statusLabel || c.status}</td>
-              <td>${c.publishDate || "—"}</td>
+              <td>${c.chapterNumber != null ? escapeHtml(c.chapterNumber) : "—"}</td>
+              <td>${escapeHtml(c.chapterName || "—")}</td>
+              <td style="color:${escapeHtml(color)};font-weight:600;">${escapeHtml(c.statusLabel || c.status)}</td>
+              <td>${escapeHtml(c.publishDate || "—")}</td>
             </tr>`;
           })
           .join("");
@@ -1099,7 +1100,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         const res = await fetch("/manga/system-admin/chapters/pending-publish");
         const data = await res.json();
         if (data.status !== "success") {
-          tbody.innerHTML = `<tr><td colspan="3" class="text-center-muted">${data.message || "Lỗi tải dữ liệu"}</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="3" class="text-center-muted">${escapeHtml(data.message || "Lỗi tải dữ liệu")}</td></tr>`;
           return;
         }
         const chapters = data.chapters || [];
@@ -1111,10 +1112,10 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           .map(
             (c) => `
                 <tr>
-                  <td>${c.seriesName}</td>
-                  <td>Chapter ${c.chapterNumber} - ${c.chapterName}</td>
+                  <td>${escapeHtml(c.seriesName)}</td>
+                  <td>Chapter ${escapeHtml(c.chapterNumber)} - ${escapeHtml(c.chapterName)}</td>
                   <td>
-                    <button class="btn-sm btn-primary" onclick="publishChapter('${c.id}')">
+                    <button class="btn-sm btn-primary" onclick="publishChapter(${jsArg(c.id)})">
                       <i class="fa-solid fa-upload"></i>Xuất bản
                     </button>
                   </td>
@@ -1123,7 +1124,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           )
           .join("");
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center-muted">Lỗi: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center-muted">Lỗi: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
@@ -1189,7 +1190,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         if (data.status === "success") {
           showToast(data.message, "success");
           resultDiv.innerHTML =
-            '<span class="u-inline-style-012">' + data.message + "</span>";
+            '<span class="u-inline-style-012">' + escapeHtml(data.message) + "</span>";
         } else {
           if (
             data.errors &&
@@ -1202,7 +1203,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               data.errors.length +
               ' lỗi cần sửa:</b><ul class="u-inline-style-014">';
             data.errors.forEach((err) => {
-              html += '<li class="u-inline-style-015">' + err + "</li>";
+              html += '<li class="u-inline-style-015">' + escapeHtml(err) + "</li>";
             });
             html += "</ul></div>";
             resultDiv.innerHTML = html;
@@ -1210,7 +1211,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             showToast(data.message, "error");
             resultDiv.innerHTML =
               '<span class="u-inline-style-013">' +
-              (data.message || "Lỗi không xác định") +
+              escapeHtml(data.message || "Lỗi không xác định") +
               "</span>";
           }
         }
@@ -1218,7 +1219,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         showToast("Lỗi kết nối", "error");
         resultDiv.innerHTML =
           '<span class="u-inline-style-013">Lỗi kết nối: ' +
-          e.message +
+          escapeHtml(e.message) +
           "</span>";
       }
     }
@@ -1284,7 +1285,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
     }
 
     function badgeHtml(role) {
-      return `<span class="badge-role badge-${role}">${role}</span>`;
+      return `<span class="badge-role badge-${escapeHtml(role)}">${escapeHtml(role)}</span>`;
     }
 
     function fillSelect(
@@ -1296,9 +1297,9 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
     ) {
       const sel = document.getElementById(selId);
       sel.innerHTML =
-        `<option value="">${placeholder}</option>` +
+        `<option value="">${escapeHtml(placeholder)}</option>` +
         items
-          .map((i) => `<option value="${i[valKey]}">${i[labelKey]}</option>`)
+          .map((i) => `<option value="${escapeHtml(i[valKey])}">${escapeHtml(i[labelKey])}</option>`)
           .join("");
     }
 
@@ -1342,17 +1343,17 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         .map(
           (u) => `
             <tr>
-                <td class="u-inline-style-017">${u.id}</td>
-                <td>${u.fullname}</td>
-                <td><code>${u.username}</code></td>
-                <td>${u.email}</td>
+                <td class="u-inline-style-017">${escapeHtml(u.id)}</td>
+                <td>${escapeHtml(u.fullname)}</td>
+                <td><code>${escapeHtml(u.username)}</code></td>
+                <td>${escapeHtml(u.email)}</td>
                 <td>${badgeHtml(u.role)}</td>
                 <td class="u-inline-style-018">
-                    <button class="btn-sm btn-warning" onclick="openEditModal('${u.id}','${u.fullname}','${u.username}','${u.email}','${u.role}',${
+                    <button class="btn-sm btn-warning" onclick="openEditModal(${jsArg(u.id)},${jsArg(u.fullname)},${jsArg(u.username)},${jsArg(u.email)},${jsArg(u.role)},${
                   (allData.mangakas || []).find((m) => m.user && m.user.id === u.id)?.salaryPerChapter ?? 0
                 })">Sửa
                     </button>
-                    <button class="btn-sm btn-danger" onclick="openDeleteModal('${u.id}','${u.fullname}')">Xóa
+                    <button class="btn-sm btn-danger" onclick="openDeleteModal(${jsArg(u.id)},${jsArg(u.fullname)})">Xóa
                     </button>
                 </td>
             </tr>`,
@@ -1590,12 +1591,12 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         .map(
           (m) => `
             <tr>
-                <td>${m.user?.fullname ?? "—"}</td>
-                <td>${m.editor?.user?.fullname ?? "—"}</td>
+                <td>${escapeHtml(m.user?.fullname ?? "—")}</td>
+                <td>${escapeHtml(m.editor?.user?.fullname ?? "—")}</td>
                 <td>
                     <!-- Mở cửa sổ chọn Tantou thay cho hộp nhập liệu mặc định của trình duyệt. -->
                     <button class="btn-sm btn-warning"
-                        onclick="openChangeTantoModal('${m.id}', '${m.user?.fullname ?? ""}')">Đổi Tantou
+                        onclick="openChangeTantoModal(${jsArg(m.id)}, ${jsArg(m.user?.fullname ?? "")})">Đổi Tantou
                     </button>
                 </td>
             </tr>`,
@@ -1615,12 +1616,12 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         .map(
           (a) => `
             <tr>
-                <td>${a.user?.fullname ?? "—"}</td>
-                <td>${a.mangaka?.user?.fullname ?? "—"}</td>
+                <td>${escapeHtml(a.user?.fullname ?? "—")}</td>
+                <td>${escapeHtml(a.mangaka?.user?.fullname ?? "—")}</td>
                 <td>
                     <!-- Mở cửa sổ chọn Mangaka thay cho hộp nhập liệu mặc định của trình duyệt. -->
                     <button class="btn-sm btn-warning"
-                        onclick="openChangeMangakaModal('${a.id}', '${a.user?.fullname ?? ""}')">Đổi Mangaka
+                        onclick="openChangeMangakaModal(${jsArg(a.id)}, ${jsArg(a.user?.fullname ?? "")})">Đổi Mangaka
                     </button>
                 </td>
             </tr>`,
@@ -1801,9 +1802,9 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
             .map((item) => {
               const medal = item.rank <= 3 ? medals[item.rank - 1] + " " : "";
               return `<tr>
-                            <td class="u-inline-style-019">${medal}${item.rank}</td>
-                            <td class="u-inline-style-019">${item.seriesId}</td>
-                            <td>${item.seriesName}</td>
+                            <td class="u-inline-style-019">${medal}${escapeHtml(item.rank)}</td>
+                            <td class="u-inline-style-019">${escapeHtml(item.seriesId)}</td>
+                            <td>${escapeHtml(item.seriesName)}</td>
                             <td class="u-inline-style-019">${item.totalView}</td>
                             <td class="u-inline-style-019">${item.totalLike}</td>
                             <td class="u-inline-style-019">${item.totalDislike}</td>
@@ -1851,12 +1852,12 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
                 result = '<span class="u-inline-style-026">Đang mở</span>';
               }
               return `<tr>
-                            <td class="u-inline-style-027">${s.sessionId}</td>
-                            <td>${s.seriesName}<br><small class="u-inline-style-028">${s.seriesId}</small></td>
+                            <td class="u-inline-style-027">${escapeHtml(s.sessionId)}</td>
+                            <td>${escapeHtml(s.seriesName)}<br><small class="u-inline-style-028">${escapeHtml(s.seriesId)}</small></td>
                             <td class="u-inline-style-019">${typeLabel}</td>
                             <td><span class="date-value">${formatAppDate(s.createdAt)}</span></td>
                             <td><span class="date-value">${formatAppDate(s.closedAt)}</span></td>
-                            <td>${s.createdBy}</td>
+                            <td>${escapeHtml(s.createdBy)}</td>
                             <td class="u-inline-style-019">${progress}</td>
                             <td class="u-inline-style-019">${result}</td>
                         </tr>`;
@@ -1924,7 +1925,7 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map((s) => {
                 const tag =
                   s.status !== "unfinish" ? " [" + formatStatusVi(s.status) + "]" : "";
-                return `<option value="${s.id}">${s.id} — ${s.name}${tag}</option>`;
+                return `<option value="${escapeHtml(s.id)}">${escapeHtml(s.id)} — ${escapeHtml(s.name)}${escapeHtml(tag)}</option>`;
               })
               .join("");
           openModal("modal-create-vote");
@@ -2067,13 +2068,13 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
         .map(
           (u) => `
               <tr>
-                <td class="u-inline-style-017">${u.id}</td>
-                <td>${u.fullname || ""}</td>
-                <td><code>${u.username || ""}</code></td>
-                <td>${u.email || ""}</td>
+                <td class="u-inline-style-017">${escapeHtml(u.id)}</td>
+                <td>${escapeHtml(u.fullname || "")}</td>
+                <td><code>${escapeHtml(u.username || "")}</code></td>
+                <td>${escapeHtml(u.email || "")}</td>
                 <td>${badgeHtml((u.role || "").toLowerCase())}</td>
                 <td>
-                  <button class="btn-sm btn-primary" onclick="viewUserActivity('${u.id}')">
+                  <button class="btn-sm btn-primary" onclick="viewUserActivity(${jsArg(u.id)})">
                     <i class="fa-solid fa-clock-rotate-left"></i>Xem lịch sử
                   </button>
                 </td>
@@ -2099,8 +2100,8 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
           document.getElementById("activity-user-name").textContent =
             u.fullname || u.username;
           document.getElementById("activity-user-info").innerHTML =
-            `<strong>${u.username}</strong> · ${u.role} · ID ${u.id}` +
-            (u.email ? ` · ${u.email}` : "");
+            `<strong>${escapeHtml(u.username)}</strong> · ${escapeHtml(u.role)} · ID ${escapeHtml(u.id)}` +
+            (u.email ? ` · ${escapeHtml(u.email)}` : "");
 
           const tbody = document.getElementById("activity-tbody");
           const acts = data.activities || [];
@@ -2112,8 +2113,8 @@ function formatStatusVi(status, fallback = "Chưa xác định") {
               .map(
                 (a) => `
                     <tr>
-                      <td class="col-time">${a.timestamp || "—"}</td>
-                      <td><i class="fa-solid ${a.icon || "fa-clock"} activity-icon"></i>${a.description || ""}</td>
+                      <td class="col-time">${escapeHtml(a.timestamp || "—")}</td>
+                      <td><i class="fa-solid ${escapeHtml(a.icon || "fa-clock")} activity-icon"></i>${escapeHtml(a.description || "")}</td>
                     </tr>`,
               )
               .join("");
@@ -2442,14 +2443,14 @@ async function uploadAvatar(input) {
 
     if (data.editor) {
       html += '<div class="field"><label>Tantou Editor phụ trách</label>';
-      html += '<input value="' + data.editor.editorName + ' (' + data.editor.editorId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.editor.editorName) + ' (' + escapeHtml(data.editor.editorId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Trợ lý (Assistant) thuộc quản lý</label>';
     if (data.assistants && data.assistants.length > 0) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Lương/Task</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const a of data.assistants) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + a.name + '</td><td style="padding:4px 8px;">' + a.assistantId + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(a.name) + '</td><td style="padding:4px 8px;">' + escapeHtml(a.assistantId) + '</td><td style="padding:4px 8px;">' + (a.salaryPerTask ?? 0).toLocaleString() + ' đ</td><td style="padding:4px 8px;">' + formatStatusVi(a.status) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -2461,7 +2462,7 @@ async function uploadAvatar(input) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên series</th><th style="text-align:left;padding:4px 8px;">Thể loại</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th><th style="text-align:left;padding:4px 8px;">Ngày bắt đầu</th></tr></thead><tbody>';
       for (const s of data.series) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + s.seriesName + '</td><td style="padding:4px 8px;">' + (s.genre || '—') + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + (s.startDate || '—') + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(s.seriesName) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.genre || '—')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(s.status) + '</td><td style="padding:4px 8px;">' + escapeHtml((s.startDate || '—')) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
@@ -2491,7 +2492,7 @@ async function uploadAvatar(input) {
 
     if (data.mangaka) {
       html += '<div class="field"><label>Mangaka quản lý</label>';
-      html += '<input value="' + data.mangaka.mangakaName + ' (' + data.mangaka.mangakaId + ')" disabled /></div>';
+      html += '<input value="' + escapeHtml(data.mangaka.mangakaName) + ' (' + escapeHtml(data.mangaka.mangakaId) + ')" disabled /></div>';
     }
     html += '<div class="field"><label>Lương mỗi task</label>';
     html += '<input value="' + (data.salaryPerTask ?? 0).toLocaleString() + ' đ" disabled /></div>';
@@ -2504,7 +2505,7 @@ async function uploadAvatar(input) {
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Series/Chương/Trang</th><th style="text-align:left;padding:4px 8px;">Deadline</th><th style="text-align:left;padding:4px 8px;">Trạng thái</th></tr></thead><tbody>';
       for (const t of data.recentTasks.slice(0, 5)) {
         const title = (t.seriesName || '?') + ' - Ch.' + (t.chapterNumber || '?') + ' - Pg.' + (t.pageNumber || '?');
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + title + '</td><td style="padding:4px 8px;">' + t.deadline.replace('T', ' ') + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(title) + '</td><td style="padding:4px 8px;">' + escapeHtml(t.deadline.replace('T', ' ')) + '</td><td style="padding:4px 8px;">' + formatStatusVi(t.status) + '</td></tr>';
       }
       html += '</tbody></table>';
       if (data.recentTasks.length > 5) html += '<p style="color:var(--text-muted);font-size:0.8rem;text-align:right;margin-top:0.5rem;">(Và ' + (data.recentTasks.length - 5) + ' task khác)</p>';
@@ -2533,7 +2534,7 @@ async function uploadAvatar(input) {
       html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin-top:0.5rem;">';
       html += '<thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Tên Mangaka</th><th style="text-align:left;padding:4px 8px;">Mã</th><th style="text-align:left;padding:4px 8px;">Số Series</th></tr></thead><tbody>';
       for (const m of data.managedMangaka) {
-        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + m.mangakaName + '</td><td style="padding:4px 8px;">' + m.mangakaId + '</td><td style="padding:4px 8px;">' + m.seriesCount + '</td></tr>';
+        html += '<tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 8px;">' + escapeHtml(m.mangakaName) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.mangakaId) + '</td><td style="padding:4px 8px;">' + escapeHtml(m.seriesCount) + '</td></tr>';
       }
       html += '</tbody></table>';
     } else {
